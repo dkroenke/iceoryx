@@ -1,6 +1,42 @@
 cmake_minimum_required(VERSION 3.5)
-file (STRINGS "../VERSION" iceoryx_posh_VERSION)
-project(iceoryx_posh VERSION ${iceoryx_posh_VERSION})
+file (STRINGS "../VERSION" VERSION_STRING)
+
+## This exports the parsed version info
+## Name : parse_version
+## Params: VERSION_STRING
+## Output: Sets VERSION_MAIN and VERSION_SUFFIX in the parent scope
+function(parse_version VERSION_STRING)
+    string(REGEX MATCH "([0-9\\.]*)(-[a-z]*[0-9]*)?" _ ${VERSION_STRING})
+
+    if(CMAKE_MATCH_COUNT EQUAL 2)
+        set(VERSION_MAIN ${CMAKE_MATCH_1} PARENT_SCOPE)
+        set(VERSION_SUFFIX ${CMAKE_MATCH_2} PARENT_SCOPE)
+    elseif(CMAKE_MATCH_COUNT EQUAL 1)
+        set(VERSION_MAIN ${CMAKE_MATCH_1} PARENT_SCOPE)
+        set(VERSION_SUFFIX "" PARENT_SCOPE)
+    else()
+        message(FATAL_ERROR "Could not parse version string")
+    endif()
+endfunction()
+
+function(adjust_version)
+    set(FULL_VERSION ${PROJECT_VERSION}${VERSION_SUFFIX})
+    set(PROJECT_VERSION ${FULL_VERSION} PARENT_SCOPE)
+    set(${PROJECT_NAME}_VERSION ${FULL_VERSION} PARENT_SCOPE)
+endfunction()
+
+message("VERSION_STRING: ${VERSION_STRING}")
+parse_version(${VERSION_STRING})
+
+message("VERSION_MAIN: ${VERSION_MAIN}")
+message("VERSION_SUFFIX: ${VERSION_SUFFIX}")
+
+project(iceoryx_posh VERSION ${VERSION_MAIN})
+
+adjust_version()
+
+message("PROJECT_VERSION: ${PROJECT_VERSION}")
+message("iceoryx_posh_VERSION: ${iceoryx_posh_VERSION}")
 
 find_package(Threads REQUIRED)
 find_package(iceoryx_utils REQUIRED)
