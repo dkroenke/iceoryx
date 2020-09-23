@@ -152,7 +152,7 @@ TEST_F(BasePublisherTest, LoanedSamplesAreAutomaticallyReleasedWhenOutOfScope)
 #if defined(__APPLE__)
     // Required because for some reason, only on Mac, free chunk is called repeatedly by google test.
     // Since this problem is not reproducable in Linux, it is assumed that it is a false positive.
-    EXPECT_CALL(sut.getMockedPort(), freeChunk(chunk)).Times(AtLeast(1);
+    EXPECT_CALL(sut.getMockedPort(), freeChunk(chunk)).Times(AtLeast(1));
 #else
     EXPECT_CALL(sut.getMockedPort(), freeChunk(chunk)).Times(1);
 #endif
