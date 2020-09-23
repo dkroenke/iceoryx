@@ -19,6 +19,7 @@
 
 using namespace ::testing;
 using ::testing::_;
+using ::testing::NiceMock;
 
 struct DummyData
 {
@@ -73,7 +74,7 @@ class StubbedBasePublisher : public iox::popo::BasePublisher<T, port_t>
     }
 };
 
-using TestBasePublisher = StubbedBasePublisher<DummyData, MockPublisherPortUser>;
+using TestBasePublisher = StubbedBasePublisher<DummyData, NiceMock<MockPublisherPortUser>>;
 
 class BasePublisherTest : public Test
 {
