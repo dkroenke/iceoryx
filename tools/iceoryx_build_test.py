@@ -112,7 +112,7 @@ def main():
 
     if args.coverage:
         coverage_call = subprocess.run(
-            ['./tools/gcov/lcov_generate.sh', repo_dir, 'initial'], check=True, text=True, cwd=repo_dir)
+            ['./tools/gcov/lcov_generate.sh', repo_dir, 'initial'], check=True, cwd=repo_dir)
 
     if args.examples:
         build_examples(cmake_args, examples)
@@ -122,13 +122,13 @@ def main():
 
     if args.coverage:
         coverage_call = subprocess.run(
-            ['./tools/gcov/lcov_generate.sh', repo_dir, 'capture'], check=True, text=True, cwd=repo_dir)
+            ['./tools/gcov/lcov_generate.sh', repo_dir, 'capture'], check=True, cwd=repo_dir)
         coverage_call = subprocess.run(
-            ['./tools/gcov/lcov_generate.sh', repo_dir, 'combine'], check=True, text=True, cwd=repo_dir)
+            ['./tools/gcov/lcov_generate.sh', repo_dir, 'combine'], check=True, cwd=repo_dir)
         coverage_call = subprocess.run(
-            ['./tools/gcov/lcov_generate.sh', repo_dir, 'remove'], check=True, text=True, cwd=repo_dir)
+            ['./tools/gcov/lcov_generate.sh', repo_dir, 'remove'], check=True, cwd=repo_dir)
         coverage_call = subprocess.run(
-            ['./tools/gcov/lcov_generate.sh', repo_dir, 'genhtml'], check=True, text=True, cwd=repo_dir)
+            ['./tools/gcov/lcov_generate.sh', repo_dir, 'genhtml'], check=True, cwd=repo_dir)
 
 
 def build_iceoryx(cmake_args):
@@ -176,9 +176,9 @@ def build_examples(cmake_args, examples):
         os.chdir(example)
         print(" [i] Build iceoryx examples")
         cmake_call = subprocess.run(
-            ['cmake', '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[2] + '/iceoryx_examples/' + example], check=True, text=True)
+            ['cmake', '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[2] + '/iceoryx_examples/' + example], check=True)
         make_call = subprocess.run(
-            ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True, text=True)
+            ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True)
 
 
 def run_tests(cmake_args, components):
@@ -213,12 +213,12 @@ def run_tests(cmake_args, components):
                 if os.name == 'posix':
                     print("looooooooooooooooooooooool123123")
                     test_call = subprocess.run(['./' + component + test_level, '--gtest_filter=' + cmake_args[4].test,
-                                                '--gtest_output=xml:' + output_file], check=True, text=True)
+                                                '--gtest_output=xml:' + output_file], check=True)
                 elif os.name == 'nt':
                     print("looooooooooooooooooooooool")
                     os.chdir('Debug')
                     test_call = subprocess.run([component + test_level, '--gtest_filter=' + cmake_args[4].test,
-                                                '--gtest_output=xml:' + output_file], check=True, text=True)                    
+                                                '--gtest_output=xml:' + output_file], check=True)                    
 
 class SetTestFilter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
