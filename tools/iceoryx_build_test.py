@@ -156,9 +156,9 @@ def build_iceoryx(cmake_args):
     print(" [i] Build iceoryx")
     cmake_call = subprocess.run(
         ['cmake', '-DCMAKE_BUILD_TYPE=' + cmake_args[4].type, '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[4].c_binding, cmake_args[4].strict, test, roudi_env,
-         cmake_args[4].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True, text=True)
+         cmake_args[4].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True)
     make_call = subprocess.run(
-        ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True, text=True)
+        ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True)
 
 
 def build_examples(cmake_args, examples):
