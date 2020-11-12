@@ -70,7 +70,7 @@ def main():
     global do_test
     global test_filter
 
-    if args.clean & pathlib.Path(build_dir).exists():
+    if args.clean & Path(build_dir).exists():
         print(" [i] Cleaning build directory")
         shutil.rmtree(build_dir, ignore_errors=True)
 
@@ -101,7 +101,7 @@ def main():
 
     if do_test:
         for component in components:
-            if not pathlib.Path(os.path.normpath(os.path.join(build_dir, component, "test"))).exists():
+            if not Path(os.path.normpath(os.path.join(build_dir, component, "test"))).exists():
                 bool_build_iceoryx = True
             else:
                 bool_build_iceoryx = False
@@ -136,8 +136,8 @@ def build_iceoryx(cmake_args):
     roudi_env = '-Droudi_environment=OFF'
     coverage = '-Dcoverage=OFF'
 
-    if not pathlib.Path(cmake_args[1]).exists():
-        pathlib.Path(cmake_args[1]).mkdir(exist_ok=True)
+    if not Path(cmake_args[1]).exists():
+        Path(cmake_args[1]).mkdir(exist_ok=True)
 
     os.chdir(cmake_args[1])
 
@@ -164,14 +164,14 @@ def build_iceoryx(cmake_args):
 def build_examples(cmake_args, examples):
 
     os.chdir(cmake_args[1])
-    pathlib.Path('iceoryx_examples').mkdir(exist_ok=True)
+    Path('iceoryx_examples').mkdir(exist_ok=True)
 
     print(" [i] Build iceoryx examples")
 
     os.chdir('iceoryx_examples')
 
     for example in examples:
-        pathlib.Path(example).mkdir(exist_ok=True)
+        Path(example).mkdir(exist_ok=True)
 
         os.chdir(example)
         print(" [i] Build iceoryx examples")
@@ -195,8 +195,8 @@ def run_tests(cmake_args, components):
         test_levels.clear()
         test_levels = ['_integrationtests']
 
-    if not pathlib.Path(test_results_dir).exists():
-        pathlib.Path(test_results_dir).mkdir(exist_ok=True)
+    if not Path(test_results_dir).exists():
+        Path(test_results_dir).mkdir(exist_ok=True)
 
     for component in components:
         print("######################## executing tests for " +
@@ -206,7 +206,7 @@ def run_tests(cmake_args, components):
         os.chdir(test_path)
 
         for test_level in test_levels:
-            testfile = pathlib.Path(os.path.normpath(os.path.join(component, test_level)))
+            testfile = Path(os.path.normpath(os.path.join(component, test_level)))
             if testfile.is_file():
                 print("werwerrwer")
                 output_file = os.path.normpath(os.path.join(cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
