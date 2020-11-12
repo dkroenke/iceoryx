@@ -137,7 +137,7 @@ def build_iceoryx(cmake_args):
     coverage = '-Dcoverage=OFF'
 
     if not Path(cmake_args[1]).exists():
-        Path(cmake_args[1]).mkdir(exist_ok=True)
+        Path(cmake_args[1]).mkdir()
 
     os.chdir(cmake_args[1])
 
