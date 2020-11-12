@@ -22,7 +22,7 @@ jobs:
          # Softwares installed in ubuntu-18.04 instance 
          # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
          run: |
-          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3
+          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3 python3-setuptools
           pip3 install pathlib
 
        - name : Checkout
@@ -53,7 +53,7 @@ jobs:
         # Softwares installed in ubuntu-18.04 instance 
         # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
         run: |
-          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3
+          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3 python3-setuptools
           pip3 install pathlib
 
       - name : Checkout
