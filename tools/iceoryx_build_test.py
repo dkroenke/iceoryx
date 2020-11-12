@@ -2,8 +2,12 @@
 import argparse
 import subprocess
 import shutil
-import pathlib
 import os
+
+try:
+  from pathlib import Path
+except ImportError:
+  from pathlib2 import Path
 
 do_test = False
 test_filter = ''
