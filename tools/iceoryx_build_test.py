@@ -16,15 +16,15 @@ def main():
     repo_dir = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
                                 stdout=subprocess.PIPE).communicate()[0].rstrip().decode('utf-8')
 
-    build_dir = repo_dir + '/build'
-    iceoryx_prefix = build_dir + '/install/prefix/'
+    build_dir = os.path.normpath(os.path.join(repo_dir, "build"))
+    print(" [i] build directory:", build_dir)
+    iceoryx_prefix = os.path.normpath(os.path.join(build_dir, "install", "prefix"))
     bool_build_iceoryx = True
 
     # complete list of examples to build, should be the folder name where the example is stored
     # elements are removed based on the buildflags
     examples = ['icedelivery', 'iceperf', 'benchmark_optional_and_expected',
                 'singleprocess']
-
     components = ['posh', 'utils']
 
     # parse cmdline arguments
@@ -46,7 +46,7 @@ def main():
                         help='Build & Run all tests and examples with all flags enabled')
     parser.add_argument('--strict', nargs='?', const='-DBUILD_STRICT=ON', default='-DBUILD_STRICT=OFF',
                         help='Threat compile warnings as errors (default off)')
-    parser.add_argument('--introspection', nargs='?', const='-Dintrospection=ON', default='-Dintrospection=ON',
+    parser.add_argument('--introspection', nargs='?', const='-Dintrospection=ON', default='-Dintrospection=OFF',
                         help='Build the iceoryx introspection (default on)')
     parser.add_argument('--dds_gateway', nargs='?', const='-Ddds_gateway=ON', default='-Ddds_gateway=OFF',
                         help='Build the iceoryx dds gateway (default off)')
@@ -64,16 +64,17 @@ def main():
     numjobs = cmake_args + '-j ' + args.jobs
     build_dir = args.build_dir
     global do_test
+    global test_filter
 
     if args.clean & pathlib.Path(build_dir).exists():
         print(" [i] Cleaning build directory")
         shutil.rmtree(build_dir, ignore_errors=True)
 
     if args.all:
-        args.introspection = '-Dintrospection=ON'
+        #args.introspection = '-Dintrospection=ON'
         args.dds_gateway = '-Ddds_gateway=OFF'
         args.c_binding = '-Dbinding_c=OFF'
-        args.strict = '-DBUILD_STRICT=ON'
+        #args.strict = '-DBUILD_STRICT=ON'
         args.json = '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
         args.examples = True
         do_test = True
@@ -96,7 +97,7 @@ def main():
 
     if do_test:
         for component in components:
-            if not pathlib.Path(build_dir + '/' + component + '/test').exists():
+            if not pathlib.Path(os.path.normpath(os.path.join(build_dir, component, "test"))).exists():
                 bool_build_iceoryx = True
             else:
                 bool_build_iceoryx = False
@@ -136,6 +137,8 @@ def build_iceoryx(cmake_args):
 
     os.chdir(cmake_args[1])
 
+    print(" Build iceoryx dir:", cmake_args[1])
+
     if cmake_args[4].coverage:
         coverage = '-Dcoverage=ON'
 
@@ -144,10 +147,12 @@ def build_iceoryx(cmake_args):
         test = '-Dtest=ON'
         roudi_env = '-Droudi_environment=ON'
 
+    cmake_dir = os.path.normpath(os.path.join("..", "iceoryx_meta"))
+
     print(" [i] Build iceoryx")
     cmake_call = subprocess.run(
         ['cmake', '-DCMAKE_BUILD_TYPE=' + cmake_args[4].type, '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[4].c_binding, cmake_args[4].strict, test, roudi_env,
-         cmake_args[4].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, '../iceoryx_meta'], check=True, text=True)
+         cmake_args[4].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True, text=True)
     make_call = subprocess.run(
         ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True, text=True)
 
@@ -173,7 +178,7 @@ def build_examples(cmake_args, examples):
 
 
 def run_tests(cmake_args, components):
-    print(">>>>>> Running Ice0ryx Tests <<<<<<", cmake_args[4].test)
+    print(">>>>>> Running Ice0ryx Tests <<<<<<")
     os.chdir(cmake_args[1])
 
     test_results_dir = 'testresults'
@@ -192,13 +197,24 @@ def run_tests(cmake_args, components):
     for component in components:
         print("######################## executing tests for " +
               component + " ########################")
-        os.chdir(cmake_args[1] + '/' + component + '/test')
+        
+        test_path = os.path.normpath(os.path.join(cmake_args[1], component, "test"))
+        os.chdir(test_path)
 
         for test_level in test_levels:
-            testfile = pathlib.Path(component + test_level)
+            testfile = pathlib.Path(os.path.normpath(os.path.join(component, test_level)))
             if testfile.is_file():
-                test_call = subprocess.run(['./' + component + test_level, '--gtest_filter=' + cmake_args[4].test,
-                                            '--gtest_output=xml:'+cmake_args[1] + '/' + test_results_dir + '/' + component + test_level + '_results.xml'], check=True, text=True)
+                print("werwerrwer")
+                output_file = os.path.normpath(os.path.join(cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
+                if os.name == 'posix':
+                    print("looooooooooooooooooooooool123123")
+                    test_call = subprocess.run(['./' + component + test_level, '--gtest_filter=' + cmake_args[4].test,
+                                                '--gtest_output=xml:' + output_file], check=True, text=True)
+                elif os.name == 'nt':
+                    print("looooooooooooooooooooooool")
+                    os.chdir('Debug')
+                    test_call = subprocess.run([component + test_level, '--gtest_filter=' + cmake_args[4].test,
+                                                '--gtest_output=xml:' + output_file], check=True, text=True)                    
 
 class SetTestFilter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
