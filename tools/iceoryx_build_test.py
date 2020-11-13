@@ -77,12 +77,12 @@ def main():
     if args.all:
         #args.introspection = '-Dintrospection=ON'
         args.dds_gateway = '-Ddds_gateway=OFF'
-        args.c_binding = '-Dbinding_c=OFF'
+        args.c_binding = '-Dbinding_c=ON'
         #args.strict = '-DBUILD_STRICT=ON'
         args.json = '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
         args.examples = True
-        do_test = True
-        test_filter = '*'
+        # do_test = True
+        # test_filter = '*'
 
     if args.dds_gateway == '-Ddds_gateway=ON':
         components.append('dds_gateway')
@@ -208,14 +208,13 @@ def run_tests(cmake_args, components):
             if os.name == 'posix':
                 testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", (component + test_level))))
                 print("testfile: ", testfile)
-                test_call = subprocess.run(['./' + testfile, '--gtest_filter=' + cmake_args[4].test,
-                                            '--gtest_output=xml:' + output_file], check=True)
             
             elif os.name == 'nt':
                 testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", "Debug", (component + test_level))))
                 print("testfile: ", testfile)
-                test_call = subprocess.run([testfile, '--gtest_filter=' + cmake_args[4].test,
-                                            '--gtest_output=xml:' + output_file], check=True)                    
+                
+            test_call = subprocess.run([testfile, '--gtest_filter=' + cmake_args[4].test,
+                                        '--gtest_output=xml:' + output_file], check=True)                    
 
 class SetTestFilter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
