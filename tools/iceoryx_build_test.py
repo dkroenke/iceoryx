@@ -200,25 +200,22 @@ def run_tests(cmake_args, components):
 
     for component in components:
         print("######################## executing tests for " +
-              component + " ########################")
-        
-        test_path = os.path.normpath(os.path.join(cmake_args[1], component, "test"))
-        os.chdir(test_path)
+              component + " ########################") 
 
         for test_level in test_levels:
-            testfile = Path(os.path.normpath(os.path.join(component, test_level)))
-            if testfile.is_file():
-                print("werwerrwer")
-                output_file = os.path.normpath(os.path.join(cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
-                if os.name == 'posix':
-                    print("looooooooooooooooooooooool123123")
-                    test_call = subprocess.run(['./' + component + test_level, '--gtest_filter=' + cmake_args[4].test,
-                                                '--gtest_output=xml:' + output_file], check=True)
-                elif os.name == 'nt':
-                    print("looooooooooooooooooooooool")
-                    os.chdir('Debug')
-                    test_call = subprocess.run([component + test_level, '--gtest_filter=' + cmake_args[4].test,
-                                                '--gtest_output=xml:' + output_file], check=True)                    
+            output_file = os.path.normpath(os.path.join(cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
+            
+            if os.name == 'posix':
+                testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", (component + test_level))))
+                print("testfile: ", testfile)
+                test_call = subprocess.run(['./' + testfile, '--gtest_filter=' + cmake_args[4].test,
+                                            '--gtest_output=xml:' + output_file], check=True)
+            
+            elif os.name == 'nt':
+                testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", "Debug", (component + test_level))))
+                print("testfile: ", testfile)
+                test_call = subprocess.run([testfile, '--gtest_filter=' + cmake_args[4].test,
+                                            '--gtest_output=xml:' + output_file], check=True)                    
 
 class SetTestFilter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
