@@ -119,4 +119,4 @@ jobs:
 
       - name: Build sources
         run: |
-          python $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all -j $NUM_CORES
+          python $GITHUB_WORKSPACE\tools\iceoryx_build_test.py --all -j $NUM_CORES
