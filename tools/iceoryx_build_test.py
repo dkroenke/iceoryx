@@ -17,6 +17,7 @@ def main():
 
     # set build variables
     cmake_args = ""
+    build_flags = [('','')]
     repo_dir = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
                                 stdout=subprocess.PIPE).communicate()[0].rstrip().decode('utf-8')
 
@@ -44,60 +45,68 @@ def main():
                         help='Do a Coverage scan. Argument is on which testlevel to create the coverage report')
     parser.add_argument('--clean', action='store_true',
                         help='Delete build folder for clean build')
-    parser.add_argument('--examples', action='store_true',
-                        help='Build iceoryx examples')
-    parser.add_argument('--all', action='store_true',
-                        help='Build & Run all tests and examples with all flags enabled')
+    # parser.add_argument('--examples', action='store_true',
+    #                     help='Build iceoryx examples')
+    # parser.add_argument('--all', action='store_true',
+    #                     help='Build & Run all tests and examples with all flags enabled')
     parser.add_argument('--strict', nargs='?', const='-DBUILD_STRICT=ON', default='-DBUILD_STRICT=OFF',
                         help='Threat compile warnings as errors (default off)')
-    parser.add_argument('--introspection', nargs='?', const='-Dintrospection=ON', default='-Dintrospection=OFF',
-                        help='Build the iceoryx introspection (default on)')
-    parser.add_argument('--dds_gateway', nargs='?', const='-Ddds_gateway=ON', default='-Ddds_gateway=OFF',
-                        help='Build the iceoryx dds gateway (default off)')
-    parser.add_argument('--c_binding', nargs='?', const='-Dbinding_c=ON', default='-Dbinding_c=OFF',
-                        help='Build the iceoryx C Binding (default off)')
-    parser.add_argument('--one_to_many', nargs='?', const='-DONE_TO_MANY_ONLY=ON', default='-DONE_TO_MANY_ONLY=OFF',
-                        help='Restricts to 1:n communication (default off)')
-    parser.add_argument('--json', nargs='?', const='-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', default='-DCMAKE_EXPORT_COMPILE_COMMANDS=OFF',
-                        help='Compile Commands JSON is generated (default on)')
+    # parser.add_argument('--introspection', nargs='?', const='-Dintrospection=ON', default='-Dintrospection=OFF',
+    #                     help='Build the iceoryx introspection (default on)')
+    # parser.add_argument('--dds_gateway', nargs='?', const='-Ddds_gateway=ON', default='-Ddds_gateway=OFF',
+    #                     help='Build the iceoryx dds gateway (default off)')
+    # parser.add_argument('--c_binding', nargs='?', const='-Dbinding_c=ON', default='-Dbinding_c=OFF',
+    #                     help='Build the iceoryx C Binding (default off)')
+    # parser.add_argument('--one_to_many', nargs='?', const='-DONE_TO_MANY_ONLY=ON', default='-DONE_TO_MANY_ONLY=OFF',
+    #                     help='Restricts to 1:n communication (default off)')
+    # # parser.add_argument('--json', nargs='?', const='-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', default='-DCMAKE_EXPORT_COMPILE_COMMANDS=OFF',
+    #                     help='Compile Commands JSON is generated (default on)')
     parser.add_argument('--test', nargs='?', action=SetTestFilter,
                         help='Build & Execute tests. Parameter is a filter statement be provided. For example to run only timing tests use "--test *.TimingTest_*". Default is to run all tests.')
+    parser.add_argument('--build', nargs='*',
+                        help='Build iceoryx with parameters.')
     args = parser.parse_args()
 
     # set variables from cmdline parser
-    numjobs = cmake_args + '-j ' + args.jobs
+    numjobs = '-j ' + args.jobs
     build_dir = args.build_dir
     global do_test
     global test_filter
+
+    if args.coverage:
+        args.build = 'all'
+        args.examples = False
+
+    if args.build is not None:
+        if 'json' or 'all' in args.build:
+            build_flags.append(('json', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'))
+            print(" [i] build_flags: ", build_flags)
+        if 'introspection' or 'all' in args.build:
+            args.introspection = '-Dintrospection=ON'
+        if 'one_to_many' or 'all' in args.build:
+            args.one_to_many = '-DONE_TO_MANY_ONLY=ON'
+        if 'c_binding' or 'all' in args.build:
+            args.c_binding = '-Dbinding_c=ON'
+            components.append('binding_c')
+            examples.extend(['icedelivery_on_c', 'icecallback_on_c'])
+        if 'dds_gateway' or 'all' in args.build:
+            args.dds_gateway = '-Ddds_gateway=ON'
+            components.append('dds_gateway')
+        if 'test' or 'all' in args.build:
+            args.test = '-Dtest=ON'
+        if 'examples' or 'all' in args.build:
+            args.test = '-Ddds_gateway=ON'
+            args.examples = True
+    else:
+        print(" [i] unknown build flag", args.build)
 
     if args.clean & Path(build_dir).exists():
         print(" [i] Cleaning build directory")
         shutil.rmtree(build_dir, ignore_errors=True)
 
-    if args.all:
-        #args.introspection = '-Dintrospection=ON'
-        args.dds_gateway = '-Ddds_gateway=OFF'
-        args.c_binding = '-Dbinding_c=ON'
-        #args.strict = '-DBUILD_STRICT=ON'
-        args.json = '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
-        args.examples = True
-        # do_test = True
-        # test_filter = '*'
-
-    if args.dds_gateway == '-Ddds_gateway=ON':
-        components.append('dds_gateway')
-
-    if args.c_binding == '-Dbinding_c=ON':
-        components.append('binding_c')
-        examples.extend(['icedelivery_on_c', 'icecallback_on_c'])
-
     # cmake argument list for build & test
     cmake_args = [numjobs, build_dir, repo_dir,
-                  iceoryx_prefix, args]
-
-    if args.coverage:
-        args.all = True
-        args.examples = False
+                  iceoryx_prefix, args, build_flags]
 
     if do_test:
         for component in components:
@@ -156,7 +165,7 @@ def build_iceoryx(cmake_args):
     print(" [i] Build iceoryx")
     cmake_call = subprocess.run(
         ['cmake', '-DCMAKE_BUILD_TYPE=' + cmake_args[4].type, '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[4].c_binding, cmake_args[4].strict, test, roudi_env,
-         cmake_args[4].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True)
+         cmake_args[5].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True)
     make_call = subprocess.run(
         ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True)
 
