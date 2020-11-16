@@ -5,9 +5,9 @@ import shutil
 import os
 
 try:
-  from pathlib import Path
+    from pathlib import Path
 except ImportError:
-  from pathlib2 import Path
+    from pathlib2 import Path
 
 do_test = False
 test_filter = ''
@@ -17,14 +17,16 @@ def main():
 
     # set build variables
     cmake_args = ""
-    build_flags = [('','')]
+    build_flags = []
     repo_dir = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
                                 stdout=subprocess.PIPE).communicate()[0].rstrip().decode('utf-8')
 
     build_dir = os.path.normpath(os.path.join(repo_dir, "build"))
     print(" [i] build directory:", build_dir)
-    iceoryx_prefix = os.path.normpath(os.path.join(build_dir, "install", "prefix"))
+    iceoryx_prefix = os.path.normpath(
+        os.path.join(build_dir, "install", "prefix"))
     bool_build_iceoryx = True
+    bool_examples = False
 
     # complete list of examples to build, should be the folder name where the example is stored
     # elements are removed based on the buildflags
@@ -75,30 +77,39 @@ def main():
 
     if args.coverage:
         args.build = 'all'
-        args.examples = False
+        bool_examples = False
+
+    print(" [i] build flag", args.build)
 
     if args.build is not None:
-        if 'json' or 'all' in args.build:
-            build_flags.append(('json', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'))
-            print(" [i] build_flags: ", build_flags)
-        if 'introspection' or 'all' in args.build:
-            args.introspection = '-Dintrospection=ON'
-        if 'one_to_many' or 'all' in args.build:
-            args.one_to_many = '-DONE_TO_MANY_ONLY=ON'
-        if 'c_binding' or 'all' in args.build:
-            args.c_binding = '-Dbinding_c=ON'
-            components.append('binding_c')
-            examples.extend(['icedelivery_on_c', 'icecallback_on_c'])
-        if 'dds_gateway' or 'all' in args.build:
-            args.dds_gateway = '-Ddds_gateway=ON'
-            components.append('dds_gateway')
-        if 'test' or 'all' in args.build:
-            args.test = '-Dtest=ON'
-        if 'examples' or 'all' in args.build:
-            args.test = '-Ddds_gateway=ON'
-            args.examples = True
+        for argument in args.build:
+            bool_build_iceoryx = True
+            if any(argument in s for s in ['json', 'all']):
+                build_flags.append('-DCMAKE_EXPORT_COMPILE_COMMANDS=ON')
+            if any(argument in s for s in ['introspection', 'all']):
+                build_flags.append('-Dintrospection=ON')
+            if any(argument in s for s in ['one_to_many', 'all']):
+                build_flags.append('-DONE_TO_MANY_ONLY=ON')
+            if any(argument in s for s in ['c_binding', 'all']):
+                build_flags.append('-Dbinding_c=ON')
+                components.append('binding_c')
+                examples.extend(['icedelivery_on_c', 'icecallback_on_c'])
+            if any(argument in s for s in ['dds_gateway', 'all']):
+                build_flags.append('-Ddds_gateway=ON')
+                components.append('dds_gateway')
+            if any(argument in s for s in ['test', 'all']):
+                build_flags.append('-Dtest=ON')
+                build_flags.append('-Droudi_environment=ON')
+            if any(argument in s for s in ['examples', 'all']):
+                bool_examples = True
+            if any(argument in s for s in ['strict', 'all']):
+                build_flags.append('-DBUILD_STRICT=ON')
+
+        build_flags.append(args.build)
     else:
         print(" [i] unknown build flag", args.build)
+
+    print(" [i] build flagsssssssssssssssssssssss: ", build_flags)
 
     if args.clean & Path(build_dir).exists():
         print(" [i] Cleaning build directory")
@@ -108,13 +119,13 @@ def main():
     cmake_args = [numjobs, build_dir, repo_dir,
                   iceoryx_prefix, args, build_flags]
 
-    if do_test:
-        for component in components:
-            if not Path(os.path.normpath(os.path.join(build_dir, component, "test"))).exists():
-                bool_build_iceoryx = True
-            else:
-                bool_build_iceoryx = False
-        args.test = test_filter
+    # if do_test:
+    #     for component in components:
+    #         if not Path(os.path.normpath(os.path.join(build_dir, component, "test"))).exists():
+    #             bool_build_iceoryx = True
+    #         else:
+    #             bool_build_iceoryx = False
+    #     args.test = test_filter
 
     if bool_build_iceoryx:
         build_iceoryx(cmake_args)
@@ -123,7 +134,7 @@ def main():
         coverage_call = subprocess.run(
             ['./tools/gcov/lcov_generate.sh', repo_dir, 'initial'], check=True, cwd=repo_dir)
 
-    if args.examples:
+    if bool_examples:
         build_examples(cmake_args, examples)
 
     if do_test:
@@ -141,8 +152,8 @@ def main():
 
 
 def build_iceoryx(cmake_args):
-    test = '-Dtest=OFF'
-    roudi_env = '-Droudi_environment=OFF'
+    #test = '-Dtest=OFF'
+    #roudi_env = '-Droudi_environment=OFF'
     coverage = '-Dcoverage=OFF'
 
     if not Path(cmake_args[1]).exists():
@@ -150,22 +161,21 @@ def build_iceoryx(cmake_args):
 
     os.chdir(cmake_args[1])
 
-    print(" Build iceoryx dir:", cmake_args[1])
+    print(" Build iceoryx dir:", cmake_args[5])
 
     if cmake_args[4].coverage:
         coverage = '-Dcoverage=ON'
 
-    global do_test
-    if do_test:
-        test = '-Dtest=ON'
-        roudi_env = '-Droudi_environment=ON'
+    # global do_test
+    # if do_test:
+    #     test = '-Dtest=ON'
+    #     roudi_env = '-Droudi_environment=ON'
 
-    cmake_dir = os.path.normpath(os.path.join("..", "iceoryx_meta"))
+    cmake_args[5].append(os.path.normpath(os.path.join("..", "iceoryx_meta")))
 
-    print(" [i] Build iceoryx")
+    print(" [i] Build iceoryx", cmake_args[5])
     cmake_call = subprocess.run(
-        ['cmake', '-DCMAKE_BUILD_TYPE=' + cmake_args[4].type, '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3], cmake_args[4].c_binding, cmake_args[4].strict, test, roudi_env,
-         cmake_args[5].json, cmake_args[4].introspection, cmake_args[4].dds_gateway, cmake_args[4].one_to_many, coverage, cmake_dir], check=True)
+        ['cmake', '-DCMAKE_BUILD_TYPE=' + cmake_args[4].type, '-DCMAKE_PREFIX_PATH=' + cmake_args[3], '-DCMAKE_INSTALL_PREFIX=' + cmake_args[3]] + cmake_args[5], check=True)
     make_call = subprocess.run(
         ['cmake', '--build', '.', '--target', 'install', cmake_args[0]], check=True)
 
@@ -209,21 +219,25 @@ def run_tests(cmake_args, components):
 
     for component in components:
         print("######################## executing tests for " +
-              component + " ########################") 
+              component + " ########################")
 
         for test_level in test_levels:
-            output_file = os.path.normpath(os.path.join(cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
-            
+            output_file = os.path.normpath(os.path.join(
+                cmake_args[1], test_results_dir, component, test_level, "_results.xml"))
+
             if os.name == 'posix':
-                testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", (component + test_level))))
+                testfile = Path(os.path.normpath(os.path.join(
+                    cmake_args[1], component, "test", (component + test_level))))
                 print("testfile: ", testfile)
-            
+
             elif os.name == 'nt':
-                testfile = Path(os.path.normpath(os.path.join(cmake_args[1], component, "test", "Debug", (component + test_level))))
+                testfile = Path(os.path.normpath(os.path.join(
+                    cmake_args[1], component, "test", "Debug", (component + test_level))))
                 print("testfile: ", testfile)
-                
+
             test_call = subprocess.run([testfile, '--gtest_filter=' + cmake_args[4].test,
-                                        '--gtest_output=xml:' + output_file], check=True)                    
+                                        '--gtest_output=xml:' + output_file], check=True)
+
 
 class SetTestFilter(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -235,8 +249,9 @@ class SetTestFilter(argparse.Action):
             # take argument as gtest filter
             test_filter = values
         else:
-            #Execute all tests
+            # Execute all tests
             test_filter = '*'
+
 
 if __name__ == "__main__":
     main()
