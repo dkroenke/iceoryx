@@ -21,7 +21,9 @@ jobs:
        - name: Install iceoryx dependencies
          # Softwares installed in ubuntu-18.04 instance 
          # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
-         run: sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev
+         run: |
+          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3 python3-setuptools
+          pip3 install pathlib
 
        - name : Checkout
          uses: actions/checkout@v2
@@ -29,7 +31,7 @@ jobs:
        - name: Build sources
          run: |
             export NUM_CORES=`nproc`
-            cmake -Bbuild -Hiceoryx_meta -Dtest=ON -Dbinding_c=ON -Dexamples=ON -Dintrospection=ON && cmake --build build -j$NUM_CORES
+            python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --strict --introspection --all -j $NUM_CORES
 
        - name: Run timeless tests
          run: |
@@ -50,8 +52,9 @@ jobs:
       - name: Install iceoryx dependencies
         # Softwares installed in ubuntu-18.04 instance 
         # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
-        run: sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev
-        run: pip install pathlib
+        run: |
+          sudo apt-get update && sudo apt-get install -y libacl1-dev libncurses5-dev python3 python3-setuptools
+          pip3 install pathlib
 
       - name : Checkout
         uses: actions/checkout@v2
@@ -59,19 +62,18 @@ jobs:
       - name: Build sources
         run: |
           export NUM_CORES=`nproc`
-          $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all -j $NUM_CORES
+          python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all --strict --introspection -j $NUM_CORES
 
-      # - name: Run tests
-      #   run: |
-      #     cd $GITHUB_WORKSPACE/build
-      #     ../tools/run_all_tests.sh
+      - name: Run tests
+        run: |
+          python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --test
 
       - name : Build sources (clang)
         run: |
           export CC=/usr/bin/clang
           export CXX=/usr/bin/clang++
           export NUM_CORES=`nproc`
-          $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all -j $NUM_CORES
+          python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all --strict --introspection -j $NUM_CORES
 
  # This job builds & runs iceoryx tests in macos-10.15
   macos-build-script:
@@ -98,12 +100,11 @@ jobs:
           make install
 
       - name: Build sources
-        run: $GITHUB_WORKSPACE/tools/iceoryx_build_test.sh build-test clean strict
+        run: python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --all --strict --introspection -j $NUM_CORES
 
       - name: Run tests
         run: |
-          cd $GITHUB_WORKSPACE/build
-          ../tools/run_all_tests.sh disable-timing-tests
+          python3 $GITHUB_WORKSPACE/tools/iceoryx_build_test.py --test
 
  # This job builds & runs iceoryx tests in Windows 2019
   windows-iceoryx-meta:
@@ -118,4 +119,4 @@ jobs:
 
       - name: Build sources
         run: |
-          cmake -Bbuild -Hiceoryx_meta -Ddds_gateway=OFF -Dtest=ON -Dbinding_c=ON -Dexamples=ON && cmake --build build
+          python $GITHUB_WORKSPACE\tools\iceoryx_build_test.py --all -j $NUM_CORES
