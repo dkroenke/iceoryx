@@ -17,8 +17,10 @@
 
 #include "iceoryx_posh/internal/runtime/message_queue_interface.hpp"
 #include "iceoryx_posh/internal/runtime/message_queue_message.hpp"
+#include "iceoryx_utils/cxx/smart_c.hpp"
 #include "iceoryx_utils/internal/posix_wrapper/message_queue.hpp"
 #include "iceoryx_utils/internal/units/duration.hpp"
+
 
 #include <chrono>
 #include <mutex>
@@ -39,7 +41,7 @@ using iox::runtime::MqRuntimeInterface;
 constexpr char DeleteRouDiMessageQueue[] = "rm /dev/mqueue/roudi";
 #endif
 
-constexpr char MqAppName[] = "/racer";
+constexpr char MqAppName[] = "racer";
 
 class StringToMessage : public MqBase
 {
@@ -104,7 +106,7 @@ class CMqInterfaceStartupRace_test : public Test
     /// @note smart_lock in combination with optional is currently not really usable
     std::mutex m_roudiQueueMutex;
     IpcChannelType::result_t m_roudiQueue{
-        IpcChannelType::create(MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER)};
+        IpcChannelType::create(roudi::MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER)};
     std::mutex m_appQueueMutex;
     IpcChannelType::result_t m_appQueue;
 };
@@ -124,17 +126,26 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRouDiMq)
         // roudi mqueue
         auto request = m_roudiQueue->timedReceive(15_s);
         ASSERT_FALSE(request.has_error());
-        auto msg = getMqMessage(request.get_value());
+        auto msg = getMqMessage(request.value());
         checkRegRequest(msg);
 
         // simulate the restart of RouDi with the mqueue cleanup
-        system(DeleteRouDiMessageQueue);
-        auto m_roudiQueue2 = IpcChannelType::create(MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER);
+        auto sysC = iox::cxx::makeSmartC(
+            system, iox::cxx::ReturnMode::PRE_DEFINED_ERROR_CODE, {-1}, {}, DeleteRouDiMessageQueue);
+
+        if (sysC.hasErrors())
+        {
+            std::cerr << "system call failed with error: " << sysC.getErrorString();
+            exit(EXIT_FAILURE);
+        }
+
+        auto m_roudiQueue2 =
+            IpcChannelType::create(roudi::MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER);
 
         // check if the app retries to register at RouDi
         request = m_roudiQueue2->timedReceive(15_s);
         ASSERT_FALSE(request.has_error());
-        msg = getMqMessage(request.get_value());
+        msg = getMqMessage(request.value());
         checkRegRequest(msg);
 
         sendRegAck(msg);
@@ -145,7 +156,7 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRouDiMq)
         }
     });
 
-    MqRuntimeInterface dut(MQ_ROUDI_NAME, MqAppName, 35_s);
+    MqRuntimeInterface dut(roudi::MQ_ROUDI_NAME, MqAppName, 35_s);
 
     shutdown = true;
     roudi.join();
@@ -170,8 +181,15 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRouDiMqWithFullMq)
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         // simulate the restart of RouDi with the mqueue cleanup
-        system(DeleteRouDiMessageQueue);
-        auto newRoudi = IpcChannelType::create(MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER);
+        auto sysC = iox::cxx::makeSmartC(
+            system, iox::cxx::ReturnMode::PRE_DEFINED_ERROR_CODE, {-1}, {}, DeleteRouDiMessageQueue);
+
+        if (sysC.hasErrors())
+        {
+            std::cerr << "system call failed with error: " << sysC.getErrorString();
+            exit(EXIT_FAILURE);
+        }
+        auto newRoudi = IpcChannelType::create(roudi::MQ_ROUDI_NAME, IpcChannelMode::BLOCKING, IpcChannelSide::SERVER);
 
         // check if the app retries to register at RouDi
         auto request = newRoudi->timedReceive(15_s);
@@ -183,7 +201,7 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRouDiMqWithFullMq)
             }
         }
         ASSERT_FALSE(request.has_error());
-        auto msg = getMqMessage(request.get_value());
+        auto msg = getMqMessage(request.value());
         checkRegRequest(msg);
 
         sendRegAck(msg);
@@ -194,7 +212,7 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRouDiMqWithFullMq)
         }
     });
 
-    MqRuntimeInterface dut(MQ_ROUDI_NAME, MqAppName, 35_s);
+    MqRuntimeInterface dut(roudi::MQ_ROUDI_NAME, MqAppName, 35_s);
 
     shutdown = true;
     roudi.join();
@@ -215,7 +233,7 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRegAck)
         // wait for the REG request
         auto request = m_roudiQueue->timedReceive(5_s);
         ASSERT_FALSE(request.has_error());
-        auto msg = getMqMessage(request.get_value());
+        auto msg = getMqMessage(request.value());
         checkRegRequest(msg);
 
         MqMessage obsoleteMsg;
@@ -234,7 +252,7 @@ TEST_F(CMqInterfaceStartupRace_test, ObsoleteRegAck)
         }
     });
 
-    MqRuntimeInterface dut(MQ_ROUDI_NAME, MqAppName, 35_s);
+    MqRuntimeInterface dut(roudi::MQ_ROUDI_NAME, MqAppName, 35_s);
 
     shutdown = true;
     roudi.join();

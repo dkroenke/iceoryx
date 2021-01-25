@@ -1,4 +1,4 @@
-// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "uds.hpp"
+#include "iceoryx_utils/cxx/helplets.hpp"
 #include "iceoryx_utils/cxx/smart_c.hpp"
 
 #include <chrono>
+#include <thread>
 
 UDS::UDS(const std::string& publisherName, const std::string& subscriberName) noexcept
     : m_publisherName(publisherName)
@@ -46,6 +48,8 @@ void UDS::init() noexcept
     // initialize the sockAddr data structure with the provided name
     memset(&m_sockAddrPublisher, 0, sizeof(m_sockAddrPublisher));
     m_sockAddrPublisher.sun_family = AF_LOCAL;
+    const uint64_t maxDestinationLength = iox::cxx::strlen2(m_sockAddrPublisher.sun_path);
+    iox::cxx::Ensures(maxDestinationLength >= m_publisherName.size() && "Socketname too large!");
     strncpy(m_sockAddrPublisher.sun_path, m_publisherName.c_str(), m_publisherName.size());
 
     auto socketCallPublisher = iox::cxx::makeSmartC(
@@ -62,6 +66,7 @@ void UDS::init() noexcept
     // initialize the sockAddr data structure with the provided name
     memset(&m_sockAddrSubscriber, 0, sizeof(m_sockAddrSubscriber));
     m_sockAddrSubscriber.sun_family = AF_LOCAL;
+    assert(maxDestinationLength >= m_subscriberName.size() && "Socketname too large!");
     strncpy(m_sockAddrSubscriber.sun_path, m_subscriberName.c_str(), m_subscriberName.size());
 
     auto socketCallSubscriber = iox::cxx::makeSmartC(
@@ -181,21 +186,31 @@ PerfTopic UDS::receivePerfTopic() noexcept
 
 void UDS::send(const char* buffer, uint32_t length) noexcept
 {
-    auto sendCall = iox::cxx::makeSmartC(sendto,
-                                         iox::cxx::ReturnMode::PRE_DEFINED_ERROR_CODE,
-                                         {ERROR_CODE},
-                                         {},
-                                         m_sockfdPublisher,
-                                         buffer,
-                                         length,
-                                         static_cast<int>(0),
-                                         reinterpret_cast<struct sockaddr*>(&m_sockAddrPublisher),
-                                         static_cast<socklen_t>(sizeof(m_sockAddrPublisher)));
-
-    if (sendCall.hasErrors())
+    while (true)
     {
-        std::cout << std::endl << "send error" << std::endl;
-        exit(1);
+        auto sendCall = iox::cxx::makeSmartC(sendto,
+                                             iox::cxx::ReturnMode::PRE_DEFINED_ERROR_CODE,
+                                             {ERROR_CODE},
+                                             {ENOBUFS},
+                                             m_sockfdPublisher,
+                                             buffer,
+                                             length,
+                                             static_cast<int>(0),
+                                             reinterpret_cast<struct sockaddr*>(&m_sockAddrPublisher),
+                                             static_cast<socklen_t>(sizeof(m_sockAddrPublisher)));
+
+        if (sendCall.hasErrors() && sendCall.getErrNum() != ENOBUFS)
+        {
+            std::cout << std::endl << "send error" << std::endl;
+            exit(1);
+        }
+        // only return from this loop when the message could be send successfully
+        // if the OS socket message buffer if full, retry until it is free'd by
+        // the OS and the message could be send
+        else if (!sendCall.hasErrors() && sendCall.getErrNum() != ENOBUFS)
+        {
+            break;
+        }
     }
 }
 

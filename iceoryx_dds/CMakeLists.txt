@@ -1,4 +1,4 @@
-# Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+# Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +17,12 @@ cmake_minimum_required(VERSION 3.7)
 file (STRINGS "../VERSION" iceoryx_dds_VERSION)
 project(iceoryx_dds VERSION ${iceoryx_dds_VERSION})
 
-option(test "build test binaries")
-
 find_package(cpptoml REQUIRED)
 find_package(iceoryx_posh REQUIRED)
 find_package(iceoryx_utils REQUIRED)
 
 include(IceoryxPackageHelper)
-include(IceoryxPlatformDetection)
+include(IceoryxPlatform)
 
 #
 ########## set variables for export ##########
@@ -38,24 +36,27 @@ setup_package_name_and_create_files(
 #
 ########## feature flags ##########
 #
-option(USE_CYCLONE_DDS "Bind to CycloneDDS implementation" on)
+option(USE_CYCLONE_DDS "Bind to CycloneDDS implementation" ON)
 
 if(USE_CYCLONE_DDS)
     message(INFO " Using CycloneDDS stack")
     find_package(CycloneDDS CONFIG REQUIRED)
-    find_package(CycloneDDS_CXX_API CONFIG REQUIRED)
+    find_package(CycloneDDS-CXX CONFIG REQUIRED)
 endif()
 
 #
 ########## build building-block library ##########
 #
 add_library(iceoryx_dds
-    STATIC
     source/iceoryx_dds/log/logging.cpp
 )
 add_library(${PROJECT_NAMESPACE}::iceoryx_dds ALIAS iceoryx_dds)
 
-target_compile_options(iceoryx_dds PUBLIC -std=c++11)
+set_target_properties(iceoryx_utils PROPERTIES
+    CXX_STANDARD_REQUIRED ON
+    CXX_STANDARD ${ICEORYX_CXX_STANDARD}
+    POSITION_INDEPENDENT_CODE ON
+)
 
 target_include_directories(iceoryx_dds
     PUBLIC
@@ -102,12 +103,12 @@ if(USE_CYCLONE_DDS)
     )
     target_link_libraries(iceoryx_dds
         PUBLIC
-        CycloneDDS_CXX_API::ddscxx
+        CycloneDDS-CXX::ddscxx
         ${IDLPP_GENERATE_DIR}/libiceoryx_dds_messages.a
     )
 endif()
 
-target_compile_options(iceoryx_dds PRIVATE ${ICEORYX_WARNINGS})
+target_compile_options(iceoryx_dds PRIVATE ${ICEORYX_WARNINGS} ${ICEORYX_SANITIZER_FLAGS})
 
 #
 ########## build gateway apps ##########
@@ -117,27 +118,37 @@ add_executable(iox-gw-iceoryx2dds
 )
 target_link_libraries(iox-gw-iceoryx2dds
     iceoryx_posh::iceoryx_posh
+    iceoryx_posh::iceoryx_posh_gateway
+    iceoryx_posh::iceoryx_posh_config
     ${PROJECT_NAMESPACE}::iceoryx_dds
 )
 
-target_compile_options(iox-gw-iceoryx2dds PRIVATE ${ICEORYX_WARNINGS})
+target_compile_options(iox-gw-iceoryx2dds PRIVATE ${ICEORYX_WARNINGS} ${ICEORYX_SANITIZER_FLAGS})
 
 add_executable(iox-gw-dds2iceoryx 
     source/dds2iceoryx_app/main.cpp
 )
 target_link_libraries(iox-gw-dds2iceoryx 
     iceoryx_posh::iceoryx_posh
+    iceoryx_posh::iceoryx_posh_gateway
+    iceoryx_posh::iceoryx_posh_config
     ${PROJECT_NAMESPACE}::iceoryx_dds
 )
 
-target_compile_options(iox-gw-dds2iceoryx PRIVATE ${ICEORYX_WARNINGS})
+target_compile_options(iox-gw-dds2iceoryx PRIVATE ${ICEORYX_WARNINGS} ${ICEORYX_SANITIZER_FLAGS})
+
+set_target_properties(iox-gw-iceoryx2dds iox-gw-dds2iceoryx iceoryx_dds 
+  PROPERTIES
+    CXX_STANDARD_REQUIRED ON
+    CXX_STANDARD ${ICEORYX_CXX_STANDARD}
+)
 
 #
 ########## build test executables ##########
 #
-if(test)
+if(BUILD_TEST)
     add_subdirectory(test)
-endif(test)
+endif()
 
 #
 ########## export library ##########

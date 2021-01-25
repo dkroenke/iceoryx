@@ -1,4 +1,4 @@
-// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,10 +32,12 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
                                       {"log-level", required_argument, nullptr, 'l'},
                                       {"ignore-version", required_argument, nullptr, 'i'},
                                       {"unique-roudi-id", required_argument, nullptr, 'u'},
+                                      {"compatibility", required_argument, nullptr, 'c'},
+                                      {"kill-delay", required_argument, nullptr, 'k'},
                                       {nullptr, 0, nullptr, 0}};
 
     // colon after shortOption means it requires an argument, two colons mean optional argument
-    constexpr const char* shortOptions = "hvm:l:u:";
+    constexpr const char* shortOptions = "hvm:l:u:c:k:";
     int32_t index;
     int32_t opt{-1};
     while ((opt = getopt_long(argc, argv, shortOptions, longOptions, &index), opt != -1))
@@ -56,7 +58,7 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
             std::cout << "-l, --log-level <LEVEL>           Set log level." << std::endl;
             std::cout << "                                  <LEVEL> {off, fatal, error, warning, info, debug, verbose}"
                       << std::endl;
-            std::cout << "-c, --compatibility               Set compatibility check level between runtime and RouDi"
+            std::cout << "-c, --compatibility               Set compatibility check level between runtime and RouDi."
                       << std::endl;
             std::cout << "                                  off: no check" << std::endl;
             std::cout << "                                  major: same major version " << std::endl;
@@ -64,6 +66,11 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
             std::cout << "                                  patch: same patch version + minor check" << std::endl;
             std::cout << "                                  commitId: same commit ID + patch check" << std::endl;
             std::cout << "                                  buildDate: same build date + commId check" << std::endl;
+            std::cout << "-k, --kill-delay <UINT>           Sets the delay when RouDi sends SIG_KILL, if apps"
+                      << std::endl;
+            std::cout << "                                  have't responded after trying SIG_TERM first, in seconds."
+                      << std::endl;
+
             m_run = false;
             break;
         case 'v':
@@ -72,7 +79,6 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
             std::cout << "Commit ID: " << ICEORYX_SHA1 << std::endl;
             m_run = false;
             break;
-
         case 'u':
         {
             uint16_t roudiId{0u};
@@ -90,11 +96,11 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
         {
             if (strcmp(optarg, "on") == 0)
             {
-                m_monitoringMode = MonitoringMode::ON;
+                m_monitoringMode = roudi::MonitoringMode::ON;
             }
             else if (strcmp(optarg, "off") == 0)
             {
-                m_monitoringMode = MonitoringMode::OFF;
+                m_monitoringMode = roudi::MonitoringMode::OFF;
             }
             else
             {
@@ -103,7 +109,6 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
             }
             break;
         }
-
         case 'l':
         {
             if (strcmp(optarg, "off") == 0)
@@ -139,6 +144,22 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
                 m_run = false;
                 LogError() << "Options for log-level are 'off', 'fatal', 'error', 'warning', 'info', 'debug' and "
                               "'verbose'!";
+            }
+            break;
+        }
+        case 'k':
+        {
+            uint32_t processKillDelayInSeconds{0u};
+            constexpr uint64_t MAX_PROCESS_KILL_DELAY = std::numeric_limits<uint32_t>::max();
+            if (!cxx::convert::fromString(optarg, processKillDelayInSeconds))
+            {
+                LogError() << "The process kill delay must be in the range of [0, " << MAX_PROCESS_KILL_DELAY << "]";
+                m_run = false;
+            }
+            else
+            {
+                m_processKillDelay =
+                    units::Duration::seconds(static_cast<unsigned long long int>(processKillDelayInSeconds));
             }
             break;
         }
@@ -189,20 +210,20 @@ void CmdLineParser::parse(int argc, char* argv[], const CmdLineArgumentParsingMo
         }
     }
 } // namespace roudi
-bool CmdLineParser::getRun() const
+bool CmdLineParser::getRun() const noexcept
 {
     return m_run;
 }
-iox::log::LogLevel CmdLineParser::getLogLevel() const
+iox::log::LogLevel CmdLineParser::getLogLevel() const noexcept
 {
     return m_logLevel;
 }
-MonitoringMode CmdLineParser::getMonitoringMode() const
+roudi::MonitoringMode CmdLineParser::getMonitoringMode() const noexcept
 {
     return m_monitoringMode;
 }
 
-version::CompatibilityCheckLevel CmdLineParser::getCompatibilityCheckLevel() const
+version::CompatibilityCheckLevel CmdLineParser::getCompatibilityCheckLevel() const noexcept
 {
     return m_compatibilityCheckLevel;
 }
@@ -211,5 +232,23 @@ cxx::optional<uint16_t> CmdLineParser::getUniqueRouDiId() const noexcept
 {
     return m_uniqueRouDiId;
 }
+
+units::Duration CmdLineParser::getProcessKillDelay() const noexcept
+{
+    return m_processKillDelay;
+}
+
+void CmdLineParser::printParameters() const noexcept
+{
+    LogVerbose() << "Command line parameters are..";
+    LogVerbose() << "Log level: " << m_logLevel;
+    LogVerbose() << "Monitoring mode: " << m_monitoringMode;
+    LogVerbose() << "Compatibility check level: " << m_compatibilityCheckLevel;
+    m_uniqueRouDiId.and_then([](auto& id) { LogVerbose() << "Unique RouDi ID: " << id; }).or_else([] {
+        LogVerbose() << "Unique RouDi ID: < unset >";
+    });
+    LogVerbose() << "Process kill delay: " << m_processKillDelay.seconds<uint64_t>() << " ms";
+}
+
 } // namespace config
 } // namespace iox

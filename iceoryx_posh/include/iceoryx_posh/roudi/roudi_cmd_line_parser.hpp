@@ -1,4 +1,4 @@
-// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,24 +18,13 @@
 #include "iceoryx_posh/version/compatibility_check_level.hpp"
 #include "iceoryx_utils/cxx/expected.hpp"
 #include "iceoryx_utils/cxx/optional.hpp"
+#include "iceoryx_utils/internal/units/duration.hpp"
 #include "iceoryx_utils/log/logcommon.hpp"
 
 namespace iox
 {
 namespace config
 {
-/// @brief Controls process alive monitoring. Upon timeout, a monitored process is removed
-/// and its resources are made available. The process can then start and register itself again.
-/// Contrarily, unmonitored processes can be restarted but registration will fail.
-/// Once Runlevel Management is extended, it will detect absent processes. Those processes can register again.
-/// ON - all processes are monitored
-/// OFF - no process is monitored
-enum class MonitoringMode
-{
-    ON,
-    OFF
-};
-
 class CmdLineParser
 {
   public:
@@ -60,18 +49,22 @@ class CmdLineParser
                        char* argv[],
                        const CmdLineArgumentParsingMode cmdLineParsingMode = CmdLineArgumentParsingMode::ALL) noexcept;
 
-    bool getRun() const;
-    iox::log::LogLevel getLogLevel() const;
-    MonitoringMode getMonitoringMode() const;
-    version::CompatibilityCheckLevel getCompatibilityCheckLevel() const;
+    void printParameters() const noexcept;
+
+    bool getRun() const noexcept;
+    iox::log::LogLevel getLogLevel() const noexcept;
+    roudi::MonitoringMode getMonitoringMode() const noexcept;
+    version::CompatibilityCheckLevel getCompatibilityCheckLevel() const noexcept;
     cxx::optional<uint16_t> getUniqueRouDiId() const noexcept;
+    units::Duration getProcessKillDelay() const noexcept;
 
   protected:
     bool m_run{true};
     iox::log::LogLevel m_logLevel{iox::log::LogLevel::kWarn};
-    MonitoringMode m_monitoringMode{MonitoringMode::ON};
+    roudi::MonitoringMode m_monitoringMode{roudi::MonitoringMode::ON};
     version::CompatibilityCheckLevel m_compatibilityCheckLevel{version::CompatibilityCheckLevel::PATCH};
     cxx::optional<uint16_t> m_uniqueRouDiId;
+    units::Duration m_processKillDelay{roudi::PROCESS_DEFAULT_KILL_DELAY};
 };
 
 } // namespace config

@@ -15,7 +15,6 @@
 #define IOX_UTILS_CXX_CONVERT_HPP
 
 #include "iceoryx_utils/cxx/smart_c.hpp"
-#include "iceoryx_utils/fixed_string/string100.hpp"
 
 #include <climits>
 #include <cmath>
@@ -48,6 +47,8 @@ class convert
         UNSIGNED_INTEGER,
         FLOAT
     };
+
+    static constexpr int32_t STRTOULL_BASE = 10;
 
     /// @brief Converts every type which is either a pod (plain old data) type or is convertable
     ///         to a string (this means that the operator std::string() is defined)

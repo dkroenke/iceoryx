@@ -1,4 +1,4 @@
-// Copyright (c) 2019 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2019, 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ IceOryxRouDiApp::IceOryxRouDiApp(const config::CmdLineParser& cmdLineParser, con
 {
 }
 
-void IceOryxRouDiApp::run() noexcept
+uint8_t IceOryxRouDiApp::run() noexcept
 {
     if (m_run)
     {
@@ -39,12 +39,14 @@ void IceOryxRouDiApp::run() noexcept
         auto roudiScopeGuard = cxx::makeScopedStatic(roudi,
                                                      m_rouDiComponents.value().m_rouDiMemoryManager,
                                                      m_rouDiComponents.value().m_portManager,
-                                                     m_monitoringMode,
-                                                     true,
-                                                     RouDi::MQThreadStart::IMMEDIATE,
-                                                     m_compatibilityCheckLevel);
+                                                     RouDi::RoudiStartupParameters{m_monitoringMode,
+                                                                                   true,
+                                                                                   RouDi::MQThreadStart::IMMEDIATE,
+                                                                                   m_compatibilityCheckLevel,
+                                                                                   m_processKillDelay});
         waitForSignal();
     }
+    return EXIT_SUCCESS;
 }
 } // namespace roudi
 } // namespace iox

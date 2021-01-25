@@ -1,3 +1,18 @@
+# Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 cmake_minimum_required(VERSION 3.5)
 project(cpptoml_vendor)
 
@@ -13,6 +28,14 @@ macro(build_cpptoml)
     set(win_c_flags "${CMAKE_C_FLAGS} /wd4244 /wd4267 /wd4996")
     list(APPEND extra_cmake_args -DCMAKE_C_FLAGS=${win_c_flags})
   endif()
+
+  # choose whether to use libcxx with clang
+  if(DEFINED ENABLE_LIBCXX)
+    list(APPEND extra_cmake_args -DENABLE_LIBCXX=${ENABLE_LIBCXX})
+  endif()
+
+  # disable examples
+  list(APPEND extra_cmake_args -DCPPTOML_BUILD_EXAMPLES=OFF)
 
   if(DEFINED CMAKE_TOOLCHAIN_FILE)
     list(APPEND extra_cmake_args "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")

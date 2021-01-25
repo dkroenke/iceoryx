@@ -50,8 +50,7 @@ inline cxx::expected<ChunkManagement*, TypedMemPoolError> TypedMemPool<T>::acqui
     }
 
     new (chunkHeader) ChunkHeader();
-    chunkHeader->m_info.m_payloadSize = sizeof(T);
-    chunkHeader->m_info.m_usedSizeOfChunk = MemoryManager::sizeWithChunkHeaderStruct(sizeof(T));
+    chunkHeader->payloadSize = sizeof(T);
 
     new (chunkManagement) ChunkManagement(chunkHeader, &m_memPool, &m_chunkManagementPool);
 
@@ -76,7 +75,7 @@ inline cxx::expected<SharedPointer<T>, TypedMemPoolError> TypedMemPool<T>::creat
         return cxx::error<TypedMemPoolError>(TypedMemPoolError::FatalErrorReachedInconsistentState);
     }
 
-    return cxx::success<SharedPointer<T>>(newObject.get_value());
+    return cxx::success<SharedPointer<T>>(newObject.value());
 }
 
 template <typename T>
@@ -105,7 +104,7 @@ TypedMemPool<T>::createObjectWithCreationPattern(Targs&&... args) noexcept
         return cxx::error<errorType_t>(cxx::in_place_index<0>(), TypedMemPoolError::FatalErrorReachedInconsistentState);
     }
 
-    return cxx::success<SharedPointer<T>>(sharedPointer.get_value());
+    return cxx::success<SharedPointer<T>>(sharedPointer.value());
 }
 
 template <typename T>

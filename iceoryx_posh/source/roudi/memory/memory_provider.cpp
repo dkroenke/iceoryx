@@ -81,7 +81,7 @@ cxx::expected<MemoryProviderError> MemoryProvider::create() noexcept
         return memoryResult;
     }
 
-    m_memory = memoryResult.get_value();
+    m_memory = memoryResult.value();
     m_size = totalSize;
     m_segmentId = RelativePointer::registerPtr(m_memory, m_size);
 
@@ -189,6 +189,8 @@ const char* MemoryProvider::getErrorString(const MemoryProviderError error)
         return "MEMORY_DEALLOCATION_FAILED";
     case MemoryProviderError::MEMORY_UNMAPPING_FAILED:
         return "MEMORY_UNMAPPING_FAILED";
+    case MemoryProviderError::SIGACTION_CALL_FAILED:
+        return "SIGACTION_CALL_FAILED";
     }
 
     // this will actually never be reached, but the compiler issues a warning

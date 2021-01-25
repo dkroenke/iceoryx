@@ -15,6 +15,7 @@
 #define IOX_POSH_ROUDI_ENVIRONMENT_ROUDI_ENVIRONMENT_HPP
 
 #include "iceoryx_posh/iceoryx_posh_config.hpp"
+#include "iceoryx_posh/iceoryx_posh_types.hpp"
 #include "iceoryx_posh/internal/roudi/roudi.hpp"
 #include "iceoryx_posh/internal/roudi_environment/runtime_test_interface.hpp"
 #include "iceoryx_posh/roudi/iceoryx_roudi_components.hpp"
@@ -35,7 +36,7 @@ class RouDiEnvironment
 {
   public:
     RouDiEnvironment(const RouDiConfig_t& roudiConfig = RouDiConfig_t().setDefaults(),
-                     config::MonitoringMode monitoringMode = config::MonitoringMode::OFF,
+                     roudi::MonitoringMode monitoringMode = roudi::MonitoringMode::OFF,
                      const uint16_t uniqueRouDiId = 0u);
     virtual ~RouDiEnvironment();
 
@@ -48,7 +49,7 @@ class RouDiEnvironment
     void SetInterOpWaitingTime(const std::chrono::milliseconds& v);
     void InterOpWait();
 
-    void CleanupAppResources(const std::string& name);
+    void CleanupAppResources(const ProcessName_t& name);
 
   protected:
     /// @note this is due to ambiguity of the cTor with the default parameter
