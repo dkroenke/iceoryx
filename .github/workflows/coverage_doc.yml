@@ -7,7 +7,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, iox-#521-improve-codecov ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
