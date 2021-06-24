@@ -1,4 +1,5 @@
-// Copyright (c) 2019, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2019 - 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,14 +18,14 @@
 #define IOX_POSH_ROUDI_INTROSPECTION_PORT_INTROSPECTION_HPP
 
 #include "fixed_size_container.hpp"
+#include "iceoryx_hoofs/cxx/helplets.hpp"
+#include "iceoryx_hoofs/cxx/method_callback.hpp"
+#include "iceoryx_hoofs/internal/concurrent/periodic_task.hpp"
 #include "iceoryx_posh/iceoryx_posh_types.hpp"
 #include "iceoryx_posh/internal/popo/ports/publisher_port_data.hpp"
 #include "iceoryx_posh/internal/popo/ports/publisher_port_user.hpp"
 #include "iceoryx_posh/mepoo/chunk_header.hpp"
 #include "iceoryx_posh/roudi/introspection_types.hpp"
-#include "iceoryx_utils/cxx/helplets.hpp"
-#include "iceoryx_utils/cxx/method_callback.hpp"
-#include "iceoryx_utils/internal/concurrent/periodic_task.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -70,14 +71,14 @@ class PortIntrospection
 
             PublisherInfo(typename PublisherPort::MemberType_t& portData)
                 : portData(&portData)
-                , process(portData.m_processName)
+                , process(portData.m_runtimeName)
                 , service(portData.m_serviceDescription)
                 , node(portData.m_nodeName)
             {
             }
 
             typename PublisherPort::MemberType_t* portData{nullptr};
-            ProcessName_t process;
+            RuntimeName_t process;
             capro::ServiceDescription service;
             NodeName_t node;
 
@@ -97,14 +98,14 @@ class PortIntrospection
 
             SubscriberInfo(typename SubscriberPort::MemberType_t& portData)
                 : portData(&portData)
-                , process(portData.m_processName)
+                , process(portData.m_runtimeName)
                 , service(portData.m_serviceDescription)
                 , node(portData.m_nodeName)
             {
             }
 
             typename SubscriberPort::MemberType_t* portData{nullptr};
-            ProcessName_t process;
+            RuntimeName_t process;
             capro::ServiceDescription service;
             NodeName_t node;
         };
@@ -184,10 +185,21 @@ class PortIntrospection
 
         void prepareTopic(SubscriberPortChangingIntrospectionFieldTopic& topic) noexcept;
 
-        /// @brief compute the next connection state based on the current connection state and a capro message type
+        /// @brief compute the next connection state based on the current connection state and a capro message type when
+        /// the communication policy is OneToMany
         /// @param[in] currentState current connection state (e.g. CONNECTED)
         /// @param[in] messageType capro message type
         /// @return returns the new connection state
+        template <typename T, std::enable_if_t<std::is_same<T, iox::build::OneToManyPolicy>::value>* = nullptr>
+        PortIntrospection::ConnectionState getNextState(ConnectionState currentState,
+                                                        capro::CaproMessageType messageType) noexcept;
+
+        /// @brief compute the next connection state based on the current connection state and a capro message type when
+        /// the communication policy is ManyToMany
+        /// @param[in] currentState current connection state (e.g. CONNECTED)
+        /// @param[in] messageType capro message type
+        /// @return returns the new connection state
+        template <typename T, std::enable_if_t<std::is_same<T, iox::build::ManyToManyPolicy>::value>* = nullptr>
         PortIntrospection::ConnectionState getNextState(ConnectionState currentState,
                                                         capro::CaproMessageType messageType) noexcept;
 

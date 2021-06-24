@@ -1,4 +1,5 @@
-# Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+# Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+# Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +16,25 @@
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.7)
 
-file (STRINGS "../VERSION" iceoryx_dds_VERSION)
-project(iceoryx_dds VERSION ${iceoryx_dds_VERSION})
+set(IOX_VERSION_STRING "1.90.0")
 
-find_package(cpptoml REQUIRED)
+project(iceoryx_dds VERSION ${IOX_VERSION_STRING})
+
+if(NOT cpptoml_FOUND)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpptoml/ ${CMAKE_BINARY_DIR}/dependencies/dds_gateway/cpptoml/prebuild)
+
+    find_package(cpptoml REQUIRED)
+endif()
+
+find_package(iceoryx_hoofs REQUIRED)
 find_package(iceoryx_posh REQUIRED)
-find_package(iceoryx_utils REQUIRED)
 
 include(IceoryxPackageHelper)
 include(IceoryxPlatform)
+
+if(CMAKE_SYSTEM_NAME MATCHES Linux OR CMAKE_SYSTEM_NAME MATCHES Darwin)
+    option(BUILD_SHARED_LIBS "Create shared libraries by default" ON)
+endif()
 
 #
 ########## set variables for export ##########
@@ -53,7 +64,7 @@ add_library(iceoryx_dds
 )
 add_library(${PROJECT_NAMESPACE}::iceoryx_dds ALIAS iceoryx_dds)
 
-set_target_properties(iceoryx_utils PROPERTIES
+set_target_properties(iceoryx_hoofs PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_STANDARD ${ICEORYX_CXX_STANDARD}
     POSITION_INDEPENDENT_CODE ON
@@ -70,7 +81,7 @@ target_link_libraries(iceoryx_dds
     iceoryx_posh::iceoryx_posh
     iceoryx_posh::iceoryx_posh_config
     iceoryx_posh::iceoryx_posh_gateway
-    iceoryx_utils::iceoryx_utils
+    iceoryx_hoofs::iceoryx_hoofs
 )
 
 if(USE_CYCLONE_DDS)
@@ -79,6 +90,7 @@ if(USE_CYCLONE_DDS)
         source/iceoryx_dds/dds/cyclone_context.cpp
         source/iceoryx_dds/dds/cyclone_data_reader.cpp
         source/iceoryx_dds/dds/cyclone_data_writer.cpp
+        source/iceoryx_dds/dds/iox_chunk_datagram_header.cpp
     )
 
     # Generate IDL at configure time
@@ -126,10 +138,10 @@ target_link_libraries(iox-gw-iceoryx2dds
 
 target_compile_options(iox-gw-iceoryx2dds PRIVATE ${ICEORYX_WARNINGS} ${ICEORYX_SANITIZER_FLAGS})
 
-add_executable(iox-gw-dds2iceoryx 
+add_executable(iox-gw-dds2iceoryx
     source/dds2iceoryx_app/main.cpp
 )
-target_link_libraries(iox-gw-dds2iceoryx 
+target_link_libraries(iox-gw-dds2iceoryx
     iceoryx_posh::iceoryx_posh
     iceoryx_posh::iceoryx_posh_gateway
     iceoryx_posh::iceoryx_posh_config
@@ -138,7 +150,7 @@ target_link_libraries(iox-gw-dds2iceoryx
 
 target_compile_options(iox-gw-dds2iceoryx PRIVATE ${ICEORYX_WARNINGS} ${ICEORYX_SANITIZER_FLAGS})
 
-set_target_properties(iox-gw-iceoryx2dds iox-gw-dds2iceoryx iceoryx_dds 
+set_target_properties(iox-gw-iceoryx2dds iox-gw-dds2iceoryx iceoryx_dds
   PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_STANDARD ${ICEORYX_CXX_STANDARD}

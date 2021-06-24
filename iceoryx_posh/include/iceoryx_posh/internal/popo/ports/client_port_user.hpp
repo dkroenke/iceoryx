@@ -1,4 +1,5 @@
 // Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +17,15 @@
 #ifndef IOX_POSH_POPO_PORTS_CLIENT_PORT_USER_HPP
 #define IOX_POSH_POPO_PORTS_CLIENT_PORT_USER_HPP
 
+#include "iceoryx_hoofs/cxx/expected.hpp"
+#include "iceoryx_hoofs/cxx/helplets.hpp"
+#include "iceoryx_hoofs/cxx/optional.hpp"
+#include "iceoryx_hoofs/error_handling/error_handling.hpp"
 #include "iceoryx_posh/internal/popo/building_blocks/chunk_receiver.hpp"
 #include "iceoryx_posh/internal/popo/building_blocks/chunk_sender.hpp"
 #include "iceoryx_posh/internal/popo/ports/base_port.hpp"
 #include "iceoryx_posh/internal/popo/ports/client_port_data.hpp"
-#include "iceoryx_posh/mepoo/chunk_header.hpp"
-#include "iceoryx_utils/cxx/expected.hpp"
-#include "iceoryx_utils/cxx/helplets.hpp"
-#include "iceoryx_utils/cxx/optional.hpp"
-#include "iceoryx_utils/error_handling/error_handling.hpp"
+#include "iceoryx_posh/popo/rpc_header.hpp"
 
 namespace iox
 {
@@ -40,7 +41,7 @@ class ClientPortUser : public BasePort
   public:
     using MemberType_t = ClientPortData;
 
-    explicit ClientPortUser(cxx::not_null<MemberType_t* const> clientPortDataPtr) noexcept;
+    explicit ClientPortUser(MemberType_t& clientPortData) noexcept;
 
     ClientPortUser(const ClientPortUser& other) = delete;
     ClientPortUser& operator=(const ClientPortUser&) = delete;
@@ -50,17 +51,19 @@ class ClientPortUser : public BasePort
 
     /// @brief Allocate a chunk, the ownerhip of the SharedChunk remains in the ClientPortUser for being able to
     /// cleanup if the user process disappears
-    /// @param[in] payloadSize, size of the user paylaod without additional headers
-    /// @return on success pointer to a ChunkHeader which can be used to access the payload and header fields, error if
-    /// not
-    cxx::expected<RequestHeader*, AllocationError> allocateRequest(const uint32_t payloadSize) noexcept;
+    /// @param[in] userPayloadSize, size of the user-paylaod without additional headers
+    /// @param[in] userPayloadAlignment, alignment of the user-paylaod without additional headers
+    /// @return on success pointer to a RequestHeader which can be used to access the chunk-header, user-header and
+    /// user-payload fields, error if not
+    cxx::expected<RequestHeader*, AllocationError> allocateRequest(const uint32_t userPayloadSize,
+                                                                   const uint32_t userPayloadAlignment) noexcept;
 
     /// @brief Free an allocated request without sending it
-    /// @param[in] chunkHeader, pointer to the ChunkHeader to free
+    /// @param[in] requestHeader, pointer to the RequestHeader to free
     void freeRequest(RequestHeader* const requestHeader) noexcept;
 
     /// @brief Send an allocated request chunk to the server port
-    /// @param[in] chunkHeader, pointer to the ChunkHeader to send
+    /// @param[in] requestHeader, pointer to the RequestHeader to send
     void sendRequest(RequestHeader* const requestHeader) noexcept;
 
     /// @brief try to connect to the server Caution: There can be delays between calling connect and a change
@@ -81,14 +84,14 @@ class ClientPortUser : public BasePort
     /// @return ConnectionState
     ConnectionState getConnectionState() const noexcept;
 
-    /// @brief Tries to get the next response from the queue. If there is a new one, the ChunkHeader of the oldest
+    /// @brief Tries to get the next response from the queue. If there is a new one, the ResponseHeader of the oldest
     /// response in the queue is returned (FiFo queue)
-    /// @return optional that has a new chunk header or no value if there are no new responses in the underlying queue,
+    /// @return cxx::expected that has a new ResponseHeader if there are new responses in the underlying queue,
     /// ChunkReceiveResult on error
-    cxx::expected<cxx::optional<const ResponseHeader*>, ChunkReceiveResult> getResponse() noexcept;
+    cxx::expected<const ResponseHeader*, ChunkReceiveResult> getResponse() noexcept;
 
     /// @brief Release a response that was obtained with getResponseChunk
-    /// @param[in] chunkHeader, pointer to the ChunkHeader to release
+    /// @param[in] requestHeader, pointer to the ResponseHeader to release
     void releaseResponse(const ResponseHeader* const responseHeader) noexcept;
 
     /// @brief check if there are responses in the queue
@@ -100,7 +103,7 @@ class ClientPortUser : public BasePort
     bool hasLostResponsesSinceLastCall() noexcept;
 
     /// @brief set a condition variable (via its pointer) to the client
-    void setConditionVariable(ConditionVariableData* conditionVariableDataPtr) noexcept;
+    void setConditionVariable(ConditionVariableData& conditionVariableData, const uint64_t notificationIndex) noexcept;
 
     /// @brief unset a condition variable from the client
     void unsetConditionVariable() noexcept;
@@ -120,4 +123,4 @@ class ClientPortUser : public BasePort
 } // namespace popo
 } // namespace iox
 
-#endif // IOX_POSH_POPO_PORTS_PUBLISHER_PORT_USER_HPP
+#endif // IOX_POSH_POPO_PORTS_CLIENT_PORT_USER_HPP

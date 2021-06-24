@@ -1,4 +1,5 @@
-// Copyright (c) 2019 by Robert Bosch GmbH. All, Apex.AI Inc. rights reserved.
+// Copyright (c) 2019 - 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +17,10 @@
 #ifndef IOX_POSH_ROUDI_INTROSPECTION_TYPES_HPP
 #define IOX_POSH_ROUDI_INTROSPECTION_TYPES_HPP
 
+#include "iceoryx_hoofs/cxx/vector.hpp"
 #include "iceoryx_posh/capro/service_description.hpp"
 #include "iceoryx_posh/iceoryx_posh_types.hpp"
 #include "iceoryx_posh/mepoo/mepoo_config.hpp"
-#include "iceoryx_utils/cxx/vector.hpp"
 
 namespace iox
 {
@@ -40,7 +41,7 @@ struct MemPoolInfo
     uint32_t m_minFreeChunks{0};
     uint32_t m_numChunks{0};
     uint32_t m_chunkSize{0};
-    uint32_t m_payloadSize{0};
+    uint32_t m_chunkPayloadSize{0};
 };
 
 /// @brief container for MemPoolInfo structs of all available mempools.
@@ -65,20 +66,14 @@ const capro::ServiceDescription IntrospectionPortService(INTROSPECTION_SERVICE_I
 /// @brief container for common port data which is related to the subscriber port as well as the publisher port
 struct PortData
 {
-    ProcessName_t m_name;
+    RuntimeName_t m_name;
     capro::IdString_t m_caproInstanceID;
     capro::IdString_t m_caproServiceID;
     capro::IdString_t m_caproEventMethodID;
     NodeName_t m_node;
 };
 
-/// @brief container for subscriber port introspection data.
-struct SubscriberPortData : public PortData
-{
-    /// @brief identifier of the publisher port to which this subscriber port is connected.
-    /// If no matching publisher port exists, this should equal -1.
-    int32_t m_publisherIndex{-1};
-};
+using SubscriberPortData = PortData;
 
 /// @brief container for publisher port introspection data.
 struct PublisherPortData : public PortData
@@ -135,7 +130,7 @@ const capro::ServiceDescription IntrospectionProcessService(INTROSPECTION_SERVIC
 struct ProcessIntrospectionData
 {
     int m_pid{0};
-    ProcessName_t m_name;
+    RuntimeName_t m_name;
     cxx::vector<NodeName_t, MAX_NODE_PER_PROCESS> m_nodes;
 };
 

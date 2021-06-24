@@ -1,4 +1,5 @@
 // Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,13 +15,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include "iceoryx_hoofs/cxx/generic_raii.hpp"
 #include "iceoryx_posh/internal/capro/capro_message.hpp"
 #include "iceoryx_posh/internal/popo/building_blocks/typed_unique_id.hpp"
 #include "iceoryx_posh/internal/roudi/introspection/port_introspection.hpp"
 #include "iceoryx_posh/popo/subscriber_options.hpp"
-#include "iceoryx_utils/cxx/generic_raii.hpp"
 #include "test.hpp"
 
+namespace
+{
 using namespace ::testing;
 using namespace iox::capro;
 
@@ -34,9 +37,9 @@ class CaproMessage_test : public Test
 
 TEST_F(CaproMessage_test, CTorSetsParametersCorrectly)
 {
-    constexpr uint16_t testServiceID{1U};
-    constexpr uint16_t testEventID{2U};
-    constexpr uint16_t testInstanceID{3U};
+    IdString_t testServiceID{"1"};
+    IdString_t testEventID{"2"};
+    IdString_t testInstanceID{"3"};
     ServiceDescription sd(testServiceID, testEventID, testInstanceID);
     iox::popo::SubscriberPortData recData{
         sd, "foo", iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, iox::popo::SubscriberOptions()};
@@ -53,8 +56,10 @@ TEST_F(CaproMessage_test, CTorSetsParametersCorrectly)
 
 TEST_F(CaproMessage_test, DefaultArgsOfCtor)
 {
-    CaproMessage testObj(CaproMessageType::OFFER, ServiceDescription(1u, 2u, 3u));
+    CaproMessage testObj(CaproMessageType::OFFER, ServiceDescription("1", "2", "3"));
 
     EXPECT_EQ(CaproMessageSubType::NOSUBTYPE, testObj.m_subType);
     EXPECT_EQ(nullptr, testObj.m_chunkQueueData);
 }
+
+} // namespace

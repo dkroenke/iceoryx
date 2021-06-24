@@ -1,4 +1,5 @@
-// Copyright (c) 2020, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,6 +38,17 @@ class SomeOtherClass;
 ///     ExampleDerivedClass<uint32_t> fuu(1U, 2U);
 ///     fuu.simpleMethod();
 /// @endcode
+/// @startuml
+/// (*) --> "Init"
+/// if "Condition" then
+///   -->[true] "Action Processing"
+///   --> "Action Errorhandling"
+///   -right-> (*)
+/// else
+///   ->[false] "Do something else"
+///   -->[Finish] (*)
+/// endif
+/// @enduml
 /// @note Important note for user/developer
 /// @swcomponent cpp
 template <typename T>
@@ -48,6 +60,18 @@ class ExampleDerivedClass : public ExampleBaseClass<T>
     /// @param[in] a Description of input parameter a
     /// @param[in] b Description of input parameter b
     ExampleDerivedClass(const uint64_t a, const uint64_t b) noexcept;
+
+    /// @copydoc ExampleBaseClass<T>::doSomething
+    /// @note Optional short description of the override
+    uint32_t doSomething(const uint32_t a) const noexcept override;
+
+    /// @copydoc ExampleBaseClass<T>::doSomethingWithOverload()
+    /// @note Optional short description of the override
+    uint32_t doSomethingWithOverload() const noexcept override;
+
+    /// @copydoc ExampleBaseClass<T>::doSomethingWithOverload(uint32_t,uint32_t)
+    /// @note Optional short description of the override
+    uint32_t doSomethingWithOverload(const uint32_t a, const uint32_t b) const noexcept override;
 
     /// @brief Short description
     void simpleMethod() const noexcept;

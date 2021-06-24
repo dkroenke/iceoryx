@@ -7,7 +7,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, release* ]
 
 jobs:
   clang-sanitize:
@@ -28,14 +28,17 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build
+        env:
+          CC:   clang-10
+          CXX:  clang++-10
         run: |
-          # build tests , dont run them
-          $GITHUB_WORKSPACE/tools/iceoryx_build_test.sh build-strict build-all sanitize clang
+          sudo $GITHUB_WORKSPACE/tools/add_test_users.sh
+          $GITHUB_WORKSPACE/tools/iceoryx_build_test.sh build-strict build-all sanitize test-add-user
 
       - name: Run tests
         run: |
           cd $GITHUB_WORKSPACE/build
-          ../tools/run_all_tests.sh
+          tools/run_tests.sh all
 
  # This job builds & runs iceoryx tests (with sanitizer) in macos-10.15
   clang-sanitize-macos:
@@ -72,4 +75,4 @@ jobs:
       - name: Run tests
         run: |
           cd $GITHUB_WORKSPACE/build
-          ../tools/run_all_tests.sh asan-only
+          tools/run_tests.sh asan-only

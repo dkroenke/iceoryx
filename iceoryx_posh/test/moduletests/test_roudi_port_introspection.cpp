@@ -1,4 +1,5 @@
-// Copyright (c) 2019, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2019 - 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,19 +15,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "iceoryx_utils/cxx/generic_raii.hpp"
-#include "mocks/chunk_mock.hpp"
-#include "mocks/publisher_mock.hpp"
-#include "mocks/subscriber_mock.hpp"
-#include "test.hpp"
-
-using namespace ::testing;
-using ::testing::Return;
-
+#include "iceoryx_hoofs/cxx/generic_raii.hpp"
 #include "iceoryx_posh/internal/roudi/introspection/port_introspection.hpp"
 #include "iceoryx_posh/mepoo/chunk_header.hpp"
+#include "iceoryx_posh/testing/mocks/chunk_mock.hpp"
+#include "mocks/publisher_mock.hpp"
+#include "mocks/subscriber_mock.hpp"
+
+#include "test.hpp"
 
 #include <cstdint>
+
+namespace
+{
+using namespace ::testing;
 
 template <typename PublisherPort, typename SubscriberPort>
 class PortIntrospectionAccess : public iox::roudi::PortIntrospection<PublisherPort, SubscriberPort>
@@ -95,10 +97,6 @@ class PortIntrospection_test : public Test
             return false;
         }
         if (a.m_caproEventMethodID != b.m_caproEventMethodID)
-        {
-            return false;
-        }
-        if (a.m_publisherIndex != b.m_publisherIndex)
         {
             return false;
         }
@@ -173,7 +171,7 @@ TEST_F(PortIntrospection_test, sendPortData_EmptyList)
     auto chunk = std::unique_ptr<ChunkMock<Topic>>(new ChunkMock<Topic>);
     bool chunkWasSent = false;
 
-    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_))
+    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_, _, _, _))
         .WillOnce(Return(iox::cxx::expected<iox::mepoo::ChunkHeader*, iox::popo::AllocationError>::create_value(
             chunk.get()->chunkHeader())));
 
@@ -195,21 +193,21 @@ TEST_F(PortIntrospection_test, addAndRemovePublisher)
 
     auto chunk = std::unique_ptr<ChunkMock<Topic>>(new ChunkMock<Topic>);
 
-    const iox::ProcessName_t processName1{"name1"};
-    const iox::ProcessName_t processName2{"name2"};
+    const iox::RuntimeName_t runtimeName1{"name1"};
+    const iox::RuntimeName_t runtimeName2{"name2"};
     const iox::NodeName_t nodeName1{"4"};
     const iox::NodeName_t nodeName2{"jkl"};
 
     // prepare expected outputs
     PortData expected1;
-    expected1.m_name = processName1;
+    expected1.m_name = runtimeName1;
     expected1.m_caproInstanceID = "1";
     expected1.m_caproServiceID = "2";
     expected1.m_caproEventMethodID = "3";
     expected1.m_node = nodeName1;
 
     PortData expected2;
-    expected2.m_name = processName2;
+    expected2.m_name = runtimeName2;
     expected2.m_caproInstanceID = "abc";
     expected2.m_caproServiceID = "def";
     expected2.m_caproEventMethodID = "ghi";
@@ -226,8 +224,8 @@ TEST_F(PortIntrospection_test, addAndRemovePublisher)
     publisherOptions1.nodeName = nodeName1;
     iox::popo::PublisherOptions publisherOptions2;
     publisherOptions2.nodeName = nodeName2;
-    iox::popo::PublisherPortData portData1(service1, processName1, &memoryManager, publisherOptions1);
-    iox::popo::PublisherPortData portData2(service2, processName2, &memoryManager, publisherOptions2);
+    iox::popo::PublisherPortData portData1(service1, runtimeName1, &memoryManager, publisherOptions1);
+    iox::popo::PublisherPortData portData2(service2, runtimeName2, &memoryManager, publisherOptions2);
     MockPublisherPortUser port1(&portData1);
     MockPublisherPortUser port2(&portData2);
     // test adding of ports
@@ -237,7 +235,7 @@ TEST_F(PortIntrospection_test, addAndRemovePublisher)
     EXPECT_THAT(m_introspectionAccess.addPublisher(portData2), Eq(true));
     EXPECT_THAT(m_introspectionAccess.addPublisher(portData2), Eq(false));
 
-    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_))
+    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_, _, _, _))
         .WillRepeatedly(Return(iox::cxx::expected<iox::mepoo::ChunkHeader*, iox::popo::AllocationError>::create_value(
             chunk.get()->chunkHeader())));
 
@@ -324,26 +322,24 @@ TEST_F(PortIntrospection_test, addAndRemoveSubscriber)
 
     auto chunk = std::unique_ptr<ChunkMock<Topic>>(new ChunkMock<Topic>);
 
-    const iox::ProcessName_t processName1{"name1"};
-    const iox::ProcessName_t processName2{"name2"};
+    const iox::RuntimeName_t runtimeName1{"name1"};
+    const iox::RuntimeName_t runtimeName2{"name2"};
     const iox::NodeName_t nodeName1{"4"};
     const iox::NodeName_t nodeName2{"7"};
 
     // prepare expected outputs
     PortData expected1;
-    expected1.m_name = processName1;
+    expected1.m_name = runtimeName1;
     expected1.m_caproInstanceID = "1";
     expected1.m_caproServiceID = "2";
     expected1.m_caproEventMethodID = "3";
-    expected1.m_publisherIndex = -1;
     expected1.m_node = nodeName1;
 
     PortData expected2;
-    expected2.m_name = processName2;
+    expected2.m_name = runtimeName2;
     expected2.m_caproInstanceID = "4";
     expected2.m_caproServiceID = "5";
     expected2.m_caproEventMethodID = "6";
-    expected2.m_publisherIndex = -1;
     expected2.m_node = nodeName2;
 
     // prepare inputs
@@ -360,17 +356,17 @@ TEST_F(PortIntrospection_test, addAndRemoveSubscriber)
     // test adding of ports
     // remark: duplicate subscriber insertions are not possible
     iox::popo::SubscriberPortData recData1{
-        service1, processName1, iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, subscriberOptions1};
+        service1, runtimeName1, iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, subscriberOptions1};
     MockSubscriberPortUser port1(&recData1);
     iox::popo::SubscriberPortData recData2{
-        service2, processName2, iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, subscriberOptions2};
+        service2, runtimeName2, iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, subscriberOptions2};
     MockSubscriberPortUser port2(&recData2);
     EXPECT_THAT(m_introspectionAccess.addSubscriber(recData1), Eq(true));
     EXPECT_THAT(m_introspectionAccess.addSubscriber(recData1), Eq(false));
     EXPECT_THAT(m_introspectionAccess.addSubscriber(recData2), Eq(true));
     EXPECT_THAT(m_introspectionAccess.addSubscriber(recData2), Eq(false));
 
-    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_))
+    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_, _, _, _))
         .WillRepeatedly(Return(iox::cxx::expected<iox::mepoo::ChunkHeader*, iox::popo::AllocationError>::create_value(
             chunk.get()->chunkHeader())));
 
@@ -452,234 +448,6 @@ TEST_F(PortIntrospection_test, addAndRemoveSubscriber)
 }
 
 
-TEST_F(PortIntrospection_test, reportMessageToEstablishConnection)
-{
-    using SubscriberPortData = iox::roudi::SubscriberPortData;
-    using PublisherPortData = iox::roudi::PublisherPortData;
-    using Topic = iox::roudi::PortIntrospectionFieldTopic;
-
-    auto chunk = std::unique_ptr<ChunkMock<Topic>>(new ChunkMock<Topic>);
-
-    const iox::ProcessName_t nameSubscriber{"subscriber"};
-    const iox::ProcessName_t namePublisher{"publisher"};
-    const iox::NodeName_t nodeName{""};
-
-    // prepare expected outputs
-    SubscriberPortData expectedSubscriber;
-    expectedSubscriber.m_name = nameSubscriber;
-    expectedSubscriber.m_caproInstanceID = "1";
-    expectedSubscriber.m_caproServiceID = "2";
-    expectedSubscriber.m_caproEventMethodID = "3";
-    expectedSubscriber.m_publisherIndex = -1;
-
-    PublisherPortData expectedPublisher;
-    expectedPublisher.m_name = namePublisher;
-    expectedPublisher.m_caproInstanceID = "1";
-    expectedPublisher.m_caproServiceID = "2";
-    expectedPublisher.m_caproEventMethodID = "3";
-
-    // prepare inputs
-    iox::capro::ServiceDescription service(expectedPublisher.m_caproServiceID,
-                                           expectedPublisher.m_caproInstanceID,
-                                           expectedPublisher.m_caproEventMethodID);
-
-    iox::popo::SubscriberOptions subscriberOptions;
-    subscriberOptions.nodeName = nodeName;
-
-    // test adding of publisher or subscriber port of same service to establish a connection (requires same service id)
-    iox::popo::SubscriberPortData recData1{
-        service, nameSubscriber, iox::cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer, subscriberOptions};
-    EXPECT_THAT(m_introspectionAccess.addSubscriber(recData1), Eq(true));
-    iox::mepoo::MemoryManager memoryManager;
-    iox::popo::PublisherOptions publisherOptions;
-    publisherOptions.nodeName = nodeName;
-    iox::popo::PublisherPortData publisherPortData{service, namePublisher, &memoryManager, publisherOptions};
-    EXPECT_THAT(m_introspectionAccess.addPublisher(publisherPortData), Eq(true));
-
-    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), tryAllocateChunk(_))
-        .WillRepeatedly(Return(iox::cxx::expected<iox::mepoo::ChunkHeader*, iox::popo::AllocationError>::create_value(
-            chunk.get()->chunkHeader())));
-
-    bool chunkWasSent = false;
-    EXPECT_CALL(m_introspectionAccess.getPublisherPort().value(), sendChunk(_))
-        .WillRepeatedly(Invoke([&](iox::mepoo::ChunkHeader* const) { chunkWasSent = true; }));
-
-    m_introspectionAccess.sendPortData();
-
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect unconnected publisher or subscriber (service is equal but m_publisherIndex == -1 in subscriber)
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    // report messeges to establish a connection
-    // remark: essentially a black box test of the internal state machine
-
-    iox::capro::CaproMessageType type = iox::capro::CaproMessageType::SUB;
-    iox::capro::CaproMessage message(type, service);
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect unconnected publisher or subscriber, since there was a SUB but no ACK
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::ACK;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect connected publisher or subscriber, since there was a SUB followed by ACK
-        expectedSubscriber.m_publisherIndex = 0;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::UNSUB;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect connected publisher or subscriber, since there was a SUB followed by ACK
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::SUB;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect unconnected publisher or subscriber, since there was a SUB without ACK
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::NACK;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect unconnected publisher or subscriber, since there was a SUB followed by NACK
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::SUB;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect unconnected publisher or subscriber, since there was a SUB without ACK
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::ACK;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect connected publisher or subscriber, since there was a SUB followed by ACK
-        expectedSubscriber.m_publisherIndex = 0;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::SUB;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect connected publisher or subscriber, since there was a SUB followed by ACK followed by another message
-        // (SUB)
-        expectedSubscriber.m_publisherIndex = 0;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    message.m_type = iox::capro::CaproMessageType::STOP_OFFER;
-    m_introspectionAccess.reportMessage(message);
-    chunkWasSent = false;
-    m_introspectionAccess.sendPortData();
-    ASSERT_THAT(chunkWasSent, Eq(true));
-
-    {
-        // expect disconnected publisher or subscriber, since there was a STOP_OFFER
-        expectedSubscriber.m_publisherIndex = -1;
-
-        ASSERT_THAT(chunk->sample()->m_publisherList.size(), Eq(1U));
-        ASSERT_THAT(chunk->sample()->m_subscriberList.size(), Eq(1U));
-
-        EXPECT_THAT(comparePortData(chunk->sample()->m_subscriberList[0], expectedSubscriber), Eq(true));
-        EXPECT_THAT(comparePortData(chunk->sample()->m_publisherList[0], expectedPublisher), Eq(true));
-    }
-
-    chunk->sample()->~PortIntrospectionFieldTopic();
-}
-
-
 TEST_F(PortIntrospection_test, DISABLED_thread)
 {
     using PortData = iox::roudi::PortIntrospectionFieldTopic;
@@ -704,3 +472,5 @@ TEST_F(PortIntrospection_test, DISABLED_thread)
     std::this_thread::sleep_for(
         std::chrono::milliseconds(555)); // if the thread doesn't stop, we have 12 runs after the sleep period
 }
+
+} // namespace

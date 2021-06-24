@@ -1,4 +1,5 @@
 // Copyright (c) 2019 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@
 #ifndef IOX_POSH_MEPOO_SHARED_POINTER_HPP
 #define IOX_POSH_MEPOO_SHARED_POINTER_HPP
 
+#include "iceoryx_hoofs/design_pattern/creation.hpp"
 #include "iceoryx_posh/internal/mepoo/shared_chunk.hpp"
 #include "iceoryx_posh/mepoo/chunk_header.hpp"
-#include "iceoryx_utils/design_pattern/creation.hpp"
 
 namespace iox
 {
@@ -26,6 +27,7 @@ namespace mepoo
 {
 enum class SharedPointerError
 {
+    INVALID_STATE,
     SharedChunkIsEmpty
 };
 
@@ -44,6 +46,8 @@ template <typename T>
 class SharedPointer : public DesignPattern::Creation<SharedPointer<T>, SharedPointerError>
 {
   public:
+    using CreationPattern_t = DesignPattern::Creation<SharedPointer<T>, SharedPointerError>;
+
     SharedPointer() = default;
     SharedPointer(const SharedPointer&) = default;
     SharedPointer(SharedPointer&&) = default;

@@ -1,4 +1,5 @@
 // Copyright (c) 2019 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +17,32 @@
 
 #include "iceoryx_posh/internal/mepoo/typed_mem_pool.hpp"
 
-#include "iceoryx_utils/internal/posix_wrapper/shared_memory_object/allocator.hpp"
-#include "iceoryx_utils/posix_wrapper/semaphore.hpp"
+#include "iceoryx_hoofs/internal/posix_wrapper/shared_memory_object/allocator.hpp"
+#include "iceoryx_hoofs/posix_wrapper/semaphore.hpp"
 
 #include "test.hpp"
 
+namespace iox
+{
+namespace cxx
+{
+template <>
+struct ErrorTypeAdapter<cxx::variant<mepoo::TypedMemPoolError, posix::SemaphoreError>>
+{
+    static variant<mepoo::TypedMemPoolError, posix::SemaphoreError> getInvalidState()
+    {
+        return variant<mepoo::TypedMemPoolError, posix::SemaphoreError>(iox::cxx::in_place_index<0>(),
+                                                                        mepoo::TypedMemPoolError::INVALID_STATE);
+    };
+};
+} // namespace cxx
+} // namespace iox
+
+namespace
+{
 using namespace ::testing;
 using namespace iox::mepoo;
-class alignas(32) TypedMemPool_test : public Test
+class TypedMemPool_test : public Test
 {
   public:
     class TestClass
@@ -41,18 +60,20 @@ class alignas(32) TypedMemPool_test : public Test
     static constexpr uint32_t NumberOfChunks{3};
     static constexpr uint32_t ChunkSize{128};
 
-    static constexpr uint32_t LoFFLiMemoryRequirement{MemPool::freeList_t::requiredMemorySize(NumberOfChunks) + 100000};
+    using FreeListIndex_t = MemPool::freeList_t::Index_t;
+    static constexpr FreeListIndex_t LoFFLiMemoryRequirement{
+        MemPool::freeList_t::requiredIndexMemorySize(NumberOfChunks) + 100000};
 
     TypedMemPool_test()
         : allocator(m_rawMemory, NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement)
-        , sut(NumberOfChunks, &allocator, &allocator)
+        , sut(NumberOfChunks, allocator, allocator)
     {
     }
 
     void SetUp(){};
     void TearDown(){};
 
-    alignas(32) uint8_t m_rawMemory[NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement];
+    alignas(MemPool::CHUNK_MEMORY_ALIGNMENT) uint8_t m_rawMemory[NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement];
     iox::posix::Allocator allocator;
 
     TypedMemPool<TestClass> sut;
@@ -70,6 +91,7 @@ TEST_F(TypedMemPool_test, ReleaseChunkWhenGoingOutOfScope)
 {
     {
         auto object = sut.createObject(1, 234);
+        EXPECT_FALSE(object.has_error());
         EXPECT_THAT(sut.getUsedChunks(), Eq(1));
     }
     EXPECT_THAT(sut.getUsedChunks(), Eq(0));
@@ -82,28 +104,34 @@ TEST_F(TypedMemPool_test, OutOfChunksErrorWhenFull)
     auto object3 = sut.createObject(0xaffe, 0xdead);
     auto object4 = sut.createObject(0xaffe, 0xdead);
 
+    EXPECT_FALSE(object1.has_error());
+    EXPECT_FALSE(object2.has_error());
+    EXPECT_FALSE(object3.has_error());
+
     EXPECT_THAT(object4.has_error(), Eq(true));
     EXPECT_THAT(object4.get_error(), Eq(TypedMemPoolError::OutOfChunks));
 }
 
-class alignas(32) TypedMemPool_Semaphore_test : public Test
+class TypedMemPool_Semaphore_test : public Test
 {
   public:
     static constexpr uint32_t NumberOfChunks{3};
     static constexpr uint32_t ChunkSize{sizeof(iox::posix::Semaphore)};
 
-    static constexpr uint32_t LoFFLiMemoryRequirement{MemPool::freeList_t::requiredMemorySize(NumberOfChunks) + 100000};
+    using FreeListIndex_t = MemPool::freeList_t::Index_t;
+    static constexpr FreeListIndex_t LoFFLiMemoryRequirement{
+        MemPool::freeList_t::requiredIndexMemorySize(NumberOfChunks) + 100000};
 
     TypedMemPool_Semaphore_test()
         : allocator(m_rawMemory, NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement)
-        , sut(NumberOfChunks, &allocator, &allocator)
+        , sut(NumberOfChunks, allocator, allocator)
     {
     }
 
     void SetUp(){};
     void TearDown(){};
 
-    alignas(32) uint8_t m_rawMemory[NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement];
+    alignas(MemPool::CHUNK_MEMORY_ALIGNMENT) uint8_t m_rawMemory[NumberOfChunks * ChunkSize + LoFFLiMemoryRequirement];
     iox::posix::Allocator allocator;
 
     TypedMemPool<iox::posix::Semaphore> sut;
@@ -122,3 +150,5 @@ TEST_F(TypedMemPool_Semaphore_test, CreateInvalidSemaphore)
         iox::posix::CreateNamedSemaphore, "", S_IRUSR | S_IWUSR, 10);
     EXPECT_THAT(semaphorePtr.has_error(), Eq(true));
 }
+
+} // namespace

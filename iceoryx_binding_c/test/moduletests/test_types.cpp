@@ -1,4 +1,5 @@
-// Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,12 +17,12 @@
 
 #include "iceoryx_binding_c/internal/cpp2c_publisher.hpp"
 #include "iceoryx_binding_c/internal/cpp2c_subscriber.hpp"
+#include "iceoryx_posh/popo/listener.hpp"
 #include "iceoryx_posh/popo/user_trigger.hpp"
 #include "iceoryx_posh/popo/wait_set.hpp"
 
 using namespace iox;
 using namespace iox::popo;
-
 
 extern "C" {
 #include "iceoryx_binding_c/types.h"
@@ -29,12 +30,20 @@ extern "C" {
 
 #include "test.hpp"
 
+namespace
+{
 using namespace ::testing;
 
 TEST(iox_types_test, WaitSetStorageSizeFits)
 {
     EXPECT_THAT(sizeof(WaitSet<>), Le(sizeof(iox_ws_storage_t)));
     EXPECT_THAT(alignof(WaitSet<>), Le(alignof(iox_ws_storage_t)));
+}
+
+TEST(iox_types_test, ListenerStorageSizeFits)
+{
+    EXPECT_THAT(sizeof(Listener), Le(sizeof(iox_listener_storage_t)));
+    EXPECT_THAT(alignof(Listener), Le(alignof(iox_listener_storage_t)));
 }
 
 TEST(iox_types_test, UserTriggerStorageSizeFits)
@@ -54,3 +63,5 @@ TEST(iox_types_test, cpp2c_PublisherStorageSizeFits)
     EXPECT_THAT(sizeof(cpp2c_Publisher), Le(sizeof(iox_pub_storage_t)));
     EXPECT_THAT(alignof(cpp2c_Publisher), Le(alignof(iox_pub_storage_t)));
 }
+
+} // namespace

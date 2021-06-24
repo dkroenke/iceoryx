@@ -1,4 +1,5 @@
-// Copyright (c) 2020 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,21 +20,19 @@ namespace iox
 {
 namespace runtime
 {
-constexpr bool DO_NOT_MAP_SHARED_MEMORY_INTO_THREAD{false};
-
 PoshRuntime*& getSingleProcessRuntime()
 {
     static PoshRuntime* singleProcessRuntime = nullptr;
     return singleProcessRuntime;
 }
 
-PoshRuntime& singleProcessRuntimeFactory(cxx::optional<const ProcessName_t*>)
+PoshRuntime& singleProcessRuntimeFactory(cxx::optional<const RuntimeName_t*>)
 {
     return *getSingleProcessRuntime();
 }
 
-PoshRuntimeSingleProcess::PoshRuntimeSingleProcess(const ProcessName_t& name) noexcept
-    : PoshRuntime(cxx::make_optional<const ProcessName_t*>(&name), DO_NOT_MAP_SHARED_MEMORY_INTO_THREAD)
+PoshRuntimeSingleProcess::PoshRuntimeSingleProcess(const RuntimeName_t& name) noexcept
+    : PoshRuntimeImpl(cxx::make_optional<const RuntimeName_t*>(&name), RuntimeLocation::SAME_PROCESS_LIKE_ROUDI)
 {
     auto currentFactory = PoshRuntime::getRuntimeFactory();
     if (currentFactory != nullptr && *currentFactory == PoshRuntime::defaultRuntimeFactory)

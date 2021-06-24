@@ -1,4 +1,5 @@
-// Copyright (c) 2020, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,14 +21,25 @@ namespace iox
 {
 namespace popo
 {
+cxx::VariantQueueTypes getQueueType(const QueueFullPolicy2 policy) noexcept
+{
+    return policy == QueueFullPolicy2::DISCARD_OLDEST_DATA ? cxx::VariantQueueTypes::SoFi_MultiProducerSingleConsumer
+                                                           : cxx::VariantQueueTypes::FiFo_MultiProducerSingleConsumer;
+}
+
 ClientPortData::ClientPortData(const capro::ServiceDescription& serviceDescription,
-                               const ProcessName_t& processName,
-                               const NodeName_t& nodeName,
+                               const RuntimeName_t& runtimeName,
+                               const ClientOptions& clientOptions,
                                mepoo::MemoryManager* const memoryManager,
                                const mepoo::MemoryInfo& memoryInfo) noexcept
-    : BasePortData(serviceDescription, processName, nodeName)
-    , m_chunkSenderData(memoryManager, 0, memoryInfo)
-    , m_chunkReceiverData(cxx::VariantQueueTypes::FiFo_SingleProducerSingleConsumer)
+    : BasePortData(serviceDescription, runtimeName, clientOptions.nodeName)
+    , m_chunkSenderData(memoryManager,
+                        static_cast<SubscriberTooSlowPolicy>(clientOptions.serverTooSlowPolicy),
+                        HISTORY_CAPACITY_ZERO,
+                        memoryInfo)
+    , m_chunkReceiverData(getQueueType(clientOptions.responseQueueFullPolicy),
+                          static_cast<QueueFullPolicy>(clientOptions.responseQueueFullPolicy))
+    , m_connectRequested(clientOptions.connectOnCreate)
 {
 }
 

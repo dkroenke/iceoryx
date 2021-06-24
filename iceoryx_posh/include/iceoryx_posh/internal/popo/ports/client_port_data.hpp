@@ -1,4 +1,5 @@
-// Copyright (c) 2020, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2020 - 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +22,8 @@
 #include "iceoryx_posh/internal/mepoo/memory_manager.hpp"
 #include "iceoryx_posh/internal/popo/ports/base_port_data.hpp"
 #include "iceoryx_posh/internal/popo/ports/client_server_port_types.hpp"
+#include "iceoryx_posh/popo/client_options.hpp"
+#include "iceoryx_posh/popo/rpc_header.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -32,11 +35,12 @@ namespace popo
 struct ClientPortData : public BasePortData
 {
     ClientPortData(const capro::ServiceDescription& serviceDescription,
-                   const ProcessName_t& processName,
-                   const NodeName_t& nodeName,
+                   const RuntimeName_t& runtimeName,
+                   const ClientOptions& clientOptions,
                    mepoo::MemoryManager* const memoryManager,
                    const mepoo::MemoryInfo& memoryInfo = mepoo::MemoryInfo()) noexcept;
 
+    static constexpr uint64_t HISTORY_CAPACITY_ZERO{0U};
 
     ClientChunkSenderData_t m_chunkSenderData;
     ClientChunkReceiverData_t m_chunkReceiverData;

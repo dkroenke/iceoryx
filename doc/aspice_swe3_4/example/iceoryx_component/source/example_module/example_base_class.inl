@@ -1,4 +1,5 @@
-// Copyright (c) 2020, 2021 by Robert Bosch GmbH, Apex.AI Inc. All rights reserved.
+// Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +19,7 @@
 
 
 template <typename T>
-inline ExampleBaseClass<T>::ExampleBaseClass(const uint32_t input)
+inline ExampleBaseClass<T>::ExampleBaseClass(const uint32_t input) noexcept
     : m_memberVariable(input)
 {
     // example code
@@ -35,6 +36,27 @@ inline uint32_t ExampleBaseClass<T>::simplerMethod() const noexcept
 {
     // example code
     return 99U;
+}
+
+template <typename T>
+inline uint32_t ExampleBaseClass<T>::doSomething(uint32_t a) const noexcept
+{
+    // example code
+    return a;
+}
+
+template <typename T>
+inline uint32_t ExampleBaseClass<T>::doSomethingWithOverload() const noexcept
+{
+    // example code
+    return 42U;
+}
+
+template <typename T>
+inline uint32_t ExampleBaseClass<T>::doSomethingWithOverload(const uint32_t a, const uint32_t b) const noexcept
+{
+    // example code
+    return 42U + a + b;
 }
 
 #endif // EXAMPLE_BASE_CLASS_INL_INCLUDED

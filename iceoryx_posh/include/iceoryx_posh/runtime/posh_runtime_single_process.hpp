@@ -1,4 +1,5 @@
 // Copyright (c) 2020 by Robert Bosch GmbH. All rights reserved.
+// Copyright (c) 2021 by Apex.AI Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,16 +18,16 @@
 #define IOX_POSH_RUNTIME_POSH_RUNTIME_SINGLE_PROCESS_HPP
 
 #include "iceoryx_posh/iceoryx_posh_types.hpp"
-#include "iceoryx_posh/runtime/posh_runtime.hpp"
+#include "iceoryx_posh/internal/runtime/posh_runtime_impl.hpp"
 
 namespace iox
 {
 namespace runtime
 {
-class PoshRuntimeSingleProcess : public PoshRuntime
+class PoshRuntimeSingleProcess : public PoshRuntimeImpl
 {
   public:
-    PoshRuntimeSingleProcess(const ProcessName_t& name) noexcept;
+    PoshRuntimeSingleProcess(const RuntimeName_t& name) noexcept;
     ~PoshRuntimeSingleProcess();
 };
 } // namespace runtime

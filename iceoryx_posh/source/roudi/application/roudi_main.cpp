@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
     iox::config::TomlRouDiConfigFileProvider configFileProvider(cmdLineArgs.value());
 
     auto roudiConfig = configFileProvider.parse();
+
     if (roudiConfig.has_error())
     {
         iox::LogFatal() << "Couldn't parse config file. Error: "
@@ -46,6 +47,5 @@ int main(int argc, char* argv[])
     }
 
     IceOryxRouDiApp roudi(cmdLineArgs.value(), roudiConfig.value());
-
     return roudi.run();
 }
